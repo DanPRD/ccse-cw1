@@ -5,6 +5,9 @@ use tracing;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use askama::Template;
 
+mod auth;
+use auth::{signin::sign_in, signup::{process_sign_up, sign_up}};
+
 
 #[derive(Template)]
 #[template(path="homepage.html")]
@@ -26,12 +29,16 @@ async fn main() {
     )
     .with(tracing_subscriber::fmt::layer())
     .init();
+
+    
     
 
     let root_app = Router::new()
         .nest_service("/favicon.ico", ServeFile::new("server_files\\favicon.ico"))
         .nest_service("/files", ServeDir::new("server_files").not_found_service(ServeFile::new("server_files\\static\\404.txt")))
         .route("/", get(index))
+        .route("/sign-in", get(sign_in))
+        .route("/sign-up", get(sign_up).post(process_sign_up))
         .fallback_service(ServeFile::new("server_files\\static\\404.txt"))
         .layer(TraceLayer::new_for_http());
 

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block head %}
+{% endblock %}
+
+{% block content %}
+        <h1 class="text-5xl absolute left-1/2 top-1/4 -translate-x-1/2 -translate-y-1/4">SecureCart</h1>
+        <form hx-post="/sign-up" hx-ext="response-targets" hx-target-400="#responses" class="flex flex-col absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 justify-center items-center gap-2">
+            <div class="flex flex-col gap-1 items-start">  
+                <label for="username">Username</label>
+                <input class="text-black" type="text" name="username" autocomplete="username" id="username" required/>
+            </div>
+            <div class="flex flex-col gap-1 items-start">
+                <label for="password">Email</label>
+                <input class="text-black" type="text" name="email" autocomplete="email" id="email" required/>
+            </div>
+            <div class="flex flex-col gap-1 items-start">
+                <label for="password">Password</label>
+                <input class="text-black" type="password" name="password" autocomplete="new-password" id="password" required/>
+            </div>
+            <div class="flex flex-col gap-1 items-start">
+                <label for="password">Retype Password</label>
+                <input class="text-black" type="password" name="password2" autocomplete="new-password" id="password2" required/>
+            </div>
+            <button class="w-4/5 bg-white text-black h-full" type="submit">Sign Up</button>
+        </form>
+        <p class="text-red-600 absolute left-1/2 top-3/4 -translate-x-1/2 -translate-y-3/4" id="responses"></p>
+        {% call super() %}
+{% endblock %}
