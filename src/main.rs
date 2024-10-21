@@ -4,9 +4,17 @@ use tower_http::{services::{ServeDir, ServeFile}, trace::TraceLayer};
 use tracing;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use askama::Template;
+use diesel::prelude::*;
+use diesel_async::{AsyncConnection, AsyncMysqlConnection};
+use dotenvy::dotenv;
+use std::env;
+use db::schema::users::dsl::*;
+
+mod db;
 
 mod auth;
 use auth::{signin::sign_in, signup::{process_sign_up, sign_up}};
+
 
 
 #[derive(Template)]
@@ -30,7 +38,7 @@ async fn main() {
     .with(tracing_subscriber::fmt::layer())
     .init();
 
-    
+    let conn = connect_db().await;
     
 
     let root_app = Router::new()
@@ -55,4 +63,9 @@ async fn index() -> impl IntoResponse {
 }
 
 
+async fn connect_db() -> AsyncMysqlConnection {
+    dotenv().ok();
+    let url = env::var("DATABASE_URL").expect("Environment variable DATABASE_URL must be set");
+    AsyncMysqlConnection::establish(&url).await.unwrap_or_else(|_| panic!("Error Connecting to {}", url))
+}
 
