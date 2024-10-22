@@ -4,18 +4,19 @@ use tower_http::{services::{ServeDir, ServeFile}, trace::TraceLayer};
 use tracing;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use askama::Template;
-use diesel::prelude::*;
-use diesel_async::{AsyncConnection, AsyncMysqlConnection};
+use diesel_async::{pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager}, AsyncMysqlConnection};
 use dotenvy::dotenv;
 use std::env;
-use db::schema::users::dsl::*;
 
 mod db;
-
 mod auth;
-use auth::{signin::sign_in, signup::{process_sign_up, sign_up}};
+use auth::{signin::{process_sign_in, sign_in}, signup::{process_sign_up, sign_up}};
 
 
+#[derive(Clone)]
+struct AppState {
+    pool: Pool<AsyncMysqlConnection>
+}
 
 #[derive(Template)]
 #[template(path="homepage.html")]
@@ -38,17 +39,19 @@ async fn main() {
     .with(tracing_subscriber::fmt::layer())
     .init();
 
-    let conn = connect_db().await;
+    let app_state = AppState {
+        pool: create_pool().await
+    };
     
 
     let root_app = Router::new()
         .nest_service("/favicon.ico", ServeFile::new("server_files\\favicon.ico"))
         .nest_service("/files", ServeDir::new("server_files").not_found_service(ServeFile::new("server_files\\static\\404.txt")))
         .route("/", get(index))
-        .route("/sign-in", get(sign_in))
+        .route("/sign-in", get(sign_in).post(process_sign_in))
         .route("/sign-up", get(sign_up).post(process_sign_up))
         .fallback_service(ServeFile::new("server_files\\static\\404.txt"))
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http()).with_state(app_state);
 
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:1111").await.unwrap();
@@ -62,10 +65,17 @@ async fn index() -> impl IntoResponse {
     (StatusCode::OK, Html(html))
 }
 
-
-async fn connect_db() -> AsyncMysqlConnection {
+async fn create_pool() -> Pool<AsyncMysqlConnection> {
     dotenv().ok();
     let url = env::var("DATABASE_URL").expect("Environment variable DATABASE_URL must be set");
-    AsyncMysqlConnection::establish(&url).await.unwrap_or_else(|_| panic!("Error Connecting to {}", url))
+    let conf = AsyncDieselConnectionManager::<AsyncMysqlConnection>::new(&url);
+    return Pool::builder(conf).build().unwrap_or_else(|_| panic!("Error creating pooled connection to db {}", url));
 }
 
+
+fn internal_error<E>(_err: E) -> (StatusCode, String)
+where
+    E: std::error::Error,
+{
+    (StatusCode::INTERNAL_SERVER_ERROR, String::from("Interal Server Error"))
+}
