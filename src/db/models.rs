@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use crate::db::schema::users;
+use crate::db::schema::{sessions, users};
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = users)]
@@ -16,4 +16,13 @@ pub struct User {
 pub struct NewUser<'a> {
     pub email: &'a str,
     pub password: &'a str,
+}
+
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = sessions)]
+#[diesel(check_for_backend(diesel::mysql::Mysql))]
+pub struct Session {
+    pub id: String,
+    pub user_id: i32,
+    pub expires_at: time::OffsetDateTime
 }

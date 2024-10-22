@@ -1,20 +1,20 @@
+pub mod session;
 pub mod signin {
 
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
     use askama::Template;
     use axum::{extract::State, http::StatusCode, response::{AppendHeaders, Html, IntoResponse}, Form};
+    use axum_extra::extract::{cookie::{Cookie, SameSite}, CookieJar};
     use diesel::{ExpressionMethods, QueryDsl};
     use diesel_async::RunQueryDsl;
     use serde::Deserialize;
-
-    use crate::{db::schema::users, internal_error, AppState};
-
+    use ::time::Duration;
+    use crate::{auth::session::create_session, db::schema::users, internal_error, AppState};
     #[derive(Template)]
     #[template(path="signin.html")]
     struct SignInPage {
 
     }
-
 
     #[derive(Debug, Deserialize)]
     pub struct SignInData {
@@ -28,25 +28,18 @@ pub mod signin {
         return (StatusCode::OK, Html(html))
     }
 
-    pub async fn process_sign_in(state: State<AppState>, Form(sign_in_form): Form<SignInData>) -> Result<impl IntoResponse, impl IntoResponse> {
+    pub async fn process_sign_in(state: State<AppState>, jar: CookieJar, Form(sign_in_form): Form<SignInData>) -> Result<impl IntoResponse, (StatusCode, String)> {
         tracing::debug!("{:?}", sign_in_form);
         let mut conn = state.pool.get().await.map_err(internal_error)?;
-        let usrs: Vec<String> = users::table.select(users::password).filter(users::email.eq(sign_in_form.email)).limit(1).load(&mut conn).await.map_err(internal_error)?;
-        if usrs.len() == 1 {
-            let argon2 = Argon2::default();
-            if argon2.verify_password(sign_in_form.password.as_bytes(), &PasswordHash::new(&usrs[0]).map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, String::from("Internal Server Error")))?).is_ok() {
-                // TODO create a session in database so they stay signed in, add session cookie
-                return Ok(AppendHeaders([("HX-Redirect", "/")]).into_response())
-
-            }
+        let usr_data: (String, i32) = users::table.select((users::password, users::id)).filter(users::email.eq(sign_in_form.email)).first(&mut conn).await.map_err(internal_error)?;
+        let argon2 = Argon2::default();
+        if argon2.verify_password(sign_in_form.password.as_bytes(), &PasswordHash::new(&usr_data.0).map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, String::from("Internal Server Error")))?).is_ok() {
+            let session = create_session(usr_data.1, &state.pool).await?;
+            let jar = jar.add(Cookie::build(("sc-auth-session", session)).http_only(true).same_site(SameSite::Lax).max_age(Duration::days(30)).path("/"));
+            return Ok((AppendHeaders([("HX-Redirect", "/")]), jar))
         }
         Err((StatusCode::UNAUTHORIZED, String::from("Incorrect Email or Password")))
-
-
-
     }
-
-
 }
 
 pub mod signup {
@@ -57,7 +50,6 @@ pub mod signup {
     use diesel_async::RunQueryDsl;
     use serde::Deserialize;
     use diesel::{insert_into, ExpressionMethods, QueryDsl};
-
     use crate::{db::{models::NewUser, schema::users}, internal_error, AppState};
 
     #[derive(Template)]
@@ -100,12 +92,11 @@ pub mod signup {
         let new_user = NewUser {email: &sign_up_form.email, password: &hash.to_string()};
 
         let n = insert_into(users::table).values(&new_user).execute(&mut conn).await.map_err(internal_error)?;
-        if n > 0 {  
+        if n > 0 {
             Ok(AppendHeaders([("HX-Redirect", "/")]).into_response())
         } else {
             Err((StatusCode::INTERNAL_SERVER_ERROR, String::from("Interal Server Error")))
         }
     }
-
 
 }

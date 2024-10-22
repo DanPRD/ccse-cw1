@@ -12,7 +12,6 @@ mod db;
 mod auth;
 use auth::{signin::{process_sign_in, sign_in}, signup::{process_sign_up, sign_up}};
 
-
 #[derive(Clone)]
 struct AppState {
     pool: Pool<AsyncMysqlConnection>
