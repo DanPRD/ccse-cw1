@@ -14,7 +14,22 @@
         
     </head>
 
-    <body class="bg-black text-white">
+    <body class="bg-white text-black">
+        <div class="h-20 flex bg-white p-3 items-center justify-center border-b-2 border-black" id="header">
+            <div class="flex font-title text-5xl basis-1/4 justify-center">
+                <h1>SecureCart</h1>
+            </div>
+            <ul class="flex justify-center gap-5 basis-1/2">
+                <li><a href="/">Home</a></li>
+                <li><a href="/browse">Shop</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="/sign-in">Log in</a></li>
+            </ul>
+            <ul class="flex justify-center gap-3 basis-1/4">
+                <li><a href="/liked">Favourites</a></li>
+                <li><a href="/cart">Cart</a></li>
+            </ul>
+        </div>
         <div id="content" class="">
             {% block content %}
             {% endblock %}

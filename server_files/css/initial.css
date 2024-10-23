@@ -3,3 +3,14 @@
 @tailwind utilities;
 
 
+@layer base {
+    @font-face {
+        font-family: 'Designer';
+        src: url("/files/static/Designer.otf");
+    }
+
+    @font-face {
+        font-family: 'Cocogoose';
+        src: url("/files/static/cocogoosemedium.ttf");
+    }
+}

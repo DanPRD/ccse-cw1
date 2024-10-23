@@ -4,6 +4,10 @@ const config: Config = {
   content: ["./templates/*.html"],
   theme: {
     extend: {
+      fontFamily: {
+        title: ['Designer'],
+        goose: ['Cocogoose']
+      }
     }
   },
   plugins: [],

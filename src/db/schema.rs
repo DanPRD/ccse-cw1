@@ -1,6 +1,18 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    products (id) {
+        id -> Integer,
+        #[max_length = 255]
+        title -> Varchar,
+        #[max_length = 255]
+        description -> Varchar,
+        #[max_length = 255]
+        imgname -> Varchar,
+    }
+}
+
+diesel::table! {
     sessions (id) {
         #[max_length = 255]
         id -> Varchar,
@@ -21,6 +33,7 @@ diesel::table! {
 }
 
 diesel::allow_tables_to_appear_in_same_query!(
+    products,
     sessions,
     users,
 );

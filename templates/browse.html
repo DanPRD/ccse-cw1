@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block head %}
+{% endblock %}
+
+{% block content %}
+        <div class="flex flex-wrap justify-center content-start 4 p-2 gap-3 border-l-2 border-r-2 border-black border-opacity-40 w-3/5 absolute top-20 bottom-0 left-1/2 -translate-x-1/2 overflow-y-scroll">
+        {% for product in products %}
+            <a href='/browse/{{product.imgname.strip_suffix(".jpg").unwrap().to_string() }}' class="border-bg-black bg-opacity-5 flex flex-col items-center justify-center p-3 gap-2 font-goose border border-black text-lg w-56 text-nowrap">
+                <img class="w-48 h-48 " src="/files/images/{{ product.imgname }}"/>
+                <h1>{{ product.title }} </h1>
+            </a>
+        {% endfor %}
+        </div>
+        {% call super() %}
+{% endblock %}

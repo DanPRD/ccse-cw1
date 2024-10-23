@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block head %}
+{% endblock %}
+
+{% block content %}
+        <div class="flex flex-wrap justify-center content-start 4 p-2 gap-3 border-l-2 border-r-2 border-black border-opacity-40 w-3/5 absolute top-20 bottom-0 left-1/2 -translate-x-1/2 ">
+            <img class="w-96 h-96 " src="/files/images/{{ product.imgname }}"/>
+            <div>
+                <h1>{{ product.title }}</h1>
+                <p>{{ product.description }}</p>
+                <div>
+                    <button>Favourite</button>
+                    <button>Add to Cart</button>
+                </div>
+            </div>
+        </div>
+        {% call super() %}
+{% endblock %}
