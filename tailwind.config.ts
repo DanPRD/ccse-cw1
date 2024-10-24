@@ -6,7 +6,9 @@ const config: Config = {
     extend: {
       fontFamily: {
         title: ['Designer'],
-        goose: ['Cocogoose']
+        goose: ['Cocogoose'],
+        bebas: ['Bebas'],
+        biko: ['Biko']
       }
     }
   },

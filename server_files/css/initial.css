@@ -13,4 +13,14 @@
         font-family: 'Cocogoose';
         src: url("/files/static/cocogoosemedium.ttf");
     }
+
+    @font-face {
+        font-family: 'Bebas';
+        src: url("/files/static/Bebas-Regular.otf");
+    }
+    
+    @font-face {
+        font-family: 'Biko';
+        src: url("/files/static/AgenorNeue-Regular.otf");
+    }
 }

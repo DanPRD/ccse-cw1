@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use diesel::prelude::*;
 use crate::db::schema::{products, sessions, users};
 
@@ -28,29 +29,13 @@ pub struct Session {
     pub expires_at: time::OffsetDateTime
 }
 
-#[derive(Queryable, Selectable)]
+#[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = products)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Product {
     pub id: i32,
     pub title: String,
     pub description: String,
-    pub imgname: String
-}
-
-#[derive(Insertable)]
-#[diesel(table_name = products)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
-pub struct NewProduct {
-    pub title: String,
-    pub description: String,
-    pub imgname: String
-}
-
-#[derive(Queryable)]
-#[diesel(table_name = products)]
-#[diesel(check_for_backend(diesel::mysql::Mysql))]
-pub struct ListedProduct {
-    pub title: String,
-    pub imgname: String
+    pub imgname: String,
+    pub cost: BigDecimal
 }
