@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block head %}
+{% endblock %}
+
+{% block content %}
+        <div class="flex justify-center gap-6 p-4 pb-0 pt-0 border-l-2 border-r-2 border-black border-opacity-40 w-3/5 absolute top-20 bottom-0 left-1/2 -translate-x-1/2 font-bebas text-lg">
+            {% if products.is_some() %}
+            <div class="flex flex-col basis-3/5 relative overflow-y-auto">   
+                {% for product in products.as_ref().unwrap().iter() %}
+                <div class="flex w-full mt-2 p-2 border-2 border-black rounded">
+                    <img class="w-36 h-36" src="/files/images/{{ product.0.imgname }}"/>
+                    <div class="flex w-full justify-between">
+                        <h1 class="ml-2">{{product.0.title}}</h1>
+                        <div class="flex flex-col text-right">
+                            <p>Quantity: {{ product.1 }}</p>
+                            <p>Cost Per Item: £{{product.0.cost}}</p>
+                            <p>Item Total: £{{product.0.cost.clone() * product.1}}</p>
+                        </div>
+                    </div>
+
+                </div>
+                {% endfor %}
+            </div>
+            <div class="flex flex-col basis-2/5">
+                <h1>Total Cost</h1>
+                <hr class="mb-1 bg-black bg-opacity-100 h-[2px] w-3/4"/>
+                <p>£{{ total_cost.as_ref().unwrap() }}</p>
+                <a href="/cart/checkout" class="rounded bg-black text-white w-24 text-center mt-1 hover:bg-opacity-85">Checkout</a>
+            </div>
+
+            {% else %}
+            <p>It looks like you dont have anything in your cart :(</p>
+
+            {% endif %}
+        </div>
+        {% call super() %}
+{% endblock %}

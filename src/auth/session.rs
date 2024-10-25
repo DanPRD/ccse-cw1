@@ -39,7 +39,7 @@ pub async fn validate_session(token: String, pool: &Pool<AsyncMysqlConnection>) 
     hasher.update(token.as_bytes());
     let session_id = hex::encode(hasher.finalize());
     // "SELECT user_session.id, user_session.user_id, user_session.expires_at, user.id FROM user_session INNER JOIN user ON user.id = user_session.user_id WHERE id = ?"
-    let session: Session = sessions::table.select(sessions::all_columns).filter(sessions::id.eq(&session_id)).first(&mut conn).await.map_err(internal_error)?;
+    let session: Session = sessions::table.select(sessions::all_columns).filter(sessions::id.eq(&session_id)).first(&mut conn).await.map_err(|_| (StatusCode::UNAUTHORIZED, String::from("401 Unauthorized, please try signing out and back in again")))?;
     if time::OffsetDateTime::now_utc() > session.expires_at {
         delete(sessions::table).filter(sessions::id.eq(session_id)).execute(&mut conn).await.map_err(internal_error)?;
     }

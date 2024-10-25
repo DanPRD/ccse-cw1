@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use axum::{http::StatusCode, response::{Html, IntoResponse}, routing::get, Router};
-use ecom::{browse, product};
+use ecom::{browse, cart, product};
 use tower_http::{services::{ServeDir, ServeFile}, trace::TraceLayer};
 use tracing;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -51,6 +51,7 @@ async fn main() {
         .route("/sign-in", get(sign_in).post(process_sign_in))
         .route("/sign-up", get(sign_up).post(process_sign_up))
         .route("/browse", get(browse))
+        .route("/cart", get(cart))
         .route("/browse/*product", get(product))
         .fallback_service(ServeFile::new("server_files\\static\\404.txt"))
         .layer(TraceLayer::new_for_http()).with_state(app_state);

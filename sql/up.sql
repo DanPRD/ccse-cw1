@@ -48,3 +48,12 @@ CREATE TABLE productorders (
     FOREIGN KEY (order_id) REFERENCES orders(id),
     PRIMARY KEY (product_id, order_id)
 );
+
+CREATE TABLE cartitems (
+    user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    PRIMARY KEY (product_id, user_id)
+)
