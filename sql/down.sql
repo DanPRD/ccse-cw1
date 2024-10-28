@@ -4,3 +4,4 @@ DROP TABLE products;
 DROP TABLE addresses;
 DROP TABLE productorders;
 DROP TABLE orders;
+DROP TABLE likeditems;

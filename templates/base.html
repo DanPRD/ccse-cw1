@@ -30,8 +30,10 @@
                 {% endif %}
             </ul>
             <ul class="flex justify-center gap-3 basis-1/4">
+                {% if logged_in %}
                 <li><a href="/liked">Favourites</a></li>
                 <li><a href="/cart">Cart</a></li>
+                {% endif %}
             </ul>
         </div>
         <div id="content" class="">

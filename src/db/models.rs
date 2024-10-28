@@ -1,6 +1,6 @@
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
-use crate::db::schema::{addresses, cartitems, products, sessions, users};
+use crate::db::schema::{addresses, cartproducts, products, sessions, users};
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = users)]
@@ -56,10 +56,11 @@ pub struct Address {
 #[derive(Identifiable, Selectable, Queryable, Associations, Insertable)]
 #[diesel(belongs_to(User))]
 #[diesel(belongs_to(Product))]
-#[diesel(table_name = cartitems)]
+#[diesel(table_name = cartproducts)]
 #[diesel(primary_key(user_id, product_id))]
-pub struct CartItem {
+pub struct CartProduct {
     pub user_id: i32,
     pub product_id: i32,
     pub quantity: i32
 }
+

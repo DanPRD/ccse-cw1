@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use axum::{extract::State, http::StatusCode, response::{Html, IntoResponse}, routing::{get, post}, Router};
 use axum_extra::extract::CookieJar;
-use ecom::{browse, cart, cart_post_handler, product};
+use ecom::{browse, cart, cart_post_handler, like_post_handler, liked, product};
 use tower_http::{services::{ServeDir, ServeFile}, trace::TraceLayer};
 use tracing;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -57,6 +57,7 @@ async fn main() {
         .route("/sign-out", post(sign_out))
         .route("/browse", get(browse))
         .route("/cart", get(cart).post(cart_post_handler))
+        .route("/liked", get(liked).post(like_post_handler))
         .route("/browse/:product", get(product))
         .fallback_service(ServeFile::new("server_files\\static\\404.txt"))
         .layer(TraceLayer::new_for_http()).with_state(app_state);

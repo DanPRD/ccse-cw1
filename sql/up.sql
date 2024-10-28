@@ -50,10 +50,18 @@ CREATE TABLE productorders (
     PRIMARY KEY (product_id, order_id)
 );
 
-CREATE TABLE cartitems (
+CREATE TABLE cartproducts (
     user_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    PRIMARY KEY (product_id, user_id)
+);
+
+CREATE TABLE likedproducts (
+    user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (product_id) REFERENCES products(id),
     PRIMARY KEY (product_id, user_id)

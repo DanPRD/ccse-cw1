@@ -13,14 +13,22 @@
                     <h1 class=" text-2xl">{{ product.title }}</h1>
                     <hr class="bg-black bg-opacity-100 h-[2px] w-3/4"/>
                 </div>
-                <p class="font-biko">{{ product.description }}</p>
+                <p class="">{{ product.description }}</p>
+                {% if logged_in %}
                 <div class="flex justify-evenly items-end">
-                    <form hx-post="/liked" hx-target="#fav-resp" class="flex flex-col justify-center">
+                    {% if is_liked %}
+                    <form hx-post="/liked" hx-target="#fav-resp" hx-ext="response-targets" hx-target-4*="#error-resp" class="flex flex-col justify-center">
+                        <input value="{{product.id}}" name="product_id" hidden/>
+                        <input value="Remove" name="action" hidden/>
+                        <button class="bg-black text-white pt-1 pb-1 pl-3 pr-3 hover:bg-opacity-85 rounded" id="fav-resp">Remove From Favourites</button>
+                    </form>    
+                    {% else %}   
+                    <form hx-post="/liked" hx-target="#fav-resp" hx-ext="response-targets" hx-target-4*="#error-resp" class="flex flex-col justify-center">
                         <input value="{{product.id}}" name="product_id" hidden/>
                         <input value="Add" name="action" hidden/>
-                        <button hx-post=/liked class="bg-black text-white pt-1 pb-1 pl-3 pr-3 hover:bg-opacity-85 rounded">Favourite</button>
-                        <p id="fav-resp"></p>
-                    </form>                    
+                        <button class="bg-black text-white pt-1 pb-1 pl-3 pr-3 hover:bg-opacity-85 rounded" id="fav-resp">Add To Favourites</button>
+                    </form>      
+                    {% endif %}         
                     <form hx-post="/cart" hx-target="#cart-resp" hx-ext="response-targets" hx-target-4*="#error-resp" class="flex flex-col justify-end">
                         <input value="{{product.id}}" name="product_id" hidden/>
                         <input value="Add" name="action" hidden/>
@@ -32,6 +40,9 @@
                     </form>
                 </div>
                 <p class="text-red-600" id="error-resp"></p>
+                {% else %}
+                <p class="">Please <a class="underline" href="/sign-in">login</a> to purchase or favourite products</p>
+                {% endif %}
             </div>
         </div>
         {% call super() %}

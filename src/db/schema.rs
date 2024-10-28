@@ -18,10 +18,17 @@ diesel::table! {
 }
 
 diesel::table! {
-    cartitems (product_id, user_id) {     
+    cartproducts (product_id, user_id) {
         user_id -> Integer,
         product_id -> Integer,
         quantity -> Integer,
+    }
+}
+
+diesel::table! {
+    likedproducts (product_id, user_id) {
+        user_id -> Integer,
+        product_id -> Integer,
     }
 }
 
@@ -37,6 +44,7 @@ diesel::table! {
     productorders (product_id, order_id) {
         product_id -> Integer,
         order_id -> Integer,
+        quantity -> Integer,
     }
 }
 
@@ -74,8 +82,10 @@ diesel::table! {
 }
 
 diesel::joinable!(addresses -> users (user_id));
-diesel::joinable!(cartitems -> products (product_id));
-diesel::joinable!(cartitems -> users (user_id));
+diesel::joinable!(cartproducts -> products (product_id));
+diesel::joinable!(cartproducts -> users (user_id));
+diesel::joinable!(likedproducts -> products (product_id));
+diesel::joinable!(likedproducts -> users (user_id));
 diesel::joinable!(orders -> addresses (address_id));
 diesel::joinable!(orders -> users (user_id));
 diesel::joinable!(productorders -> orders (order_id));
@@ -84,7 +94,8 @@ diesel::joinable!(sessions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     addresses,
-    cartitems,
+    cartproducts,
+    likedproducts,
     orders,
     productorders,
     products,
