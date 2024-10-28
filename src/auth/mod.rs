@@ -1,19 +1,21 @@
+
 pub mod session;
+
 pub mod signin {
 
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
     use askama::Template;
-    use axum::{extract::State, http::StatusCode, response::{AppendHeaders, Html, IntoResponse}, Form};
+    use axum::{extract::State, http::StatusCode, response::{AppendHeaders, Html, IntoResponse, Redirect}, Form};
     use axum_extra::extract::{cookie::{Cookie, SameSite}, CookieJar};
     use diesel::{ExpressionMethods, QueryDsl};
     use diesel_async::RunQueryDsl;
     use serde::Deserialize;
     use ::time::Duration;
-    use crate::{auth::session::create_session, db::schema::users, internal_error, AppState};
+    use crate::{auth::session::create_session, db::schema::users, internal_error, logged_in, AppState, SESSION_COOKIE_NAME};
     #[derive(Template)]
     #[template(path="signin.html")]
     struct SignInPage {
-
+        logged_in: bool
     }
 
     #[derive(Debug, Deserialize)]
@@ -22,10 +24,13 @@ pub mod signin {
         password: String
     }
 
-    pub async fn sign_in() -> impl IntoResponse {
-        let template = SignInPage {};
+    pub async fn sign_in(jar: CookieJar, State(state): State<AppState>) -> impl IntoResponse {
+        if logged_in(&jar, &state.pool).await {
+            return Redirect::temporary("/").into_response()
+        }
+        let template = SignInPage {logged_in: false};
         let html = template.render().unwrap();
-        return (StatusCode::OK, Html(html))
+        return (StatusCode::OK, Html(html)).into_response()
     }
 
     pub async fn process_sign_in(state: State<AppState>, jar: CookieJar, Form(sign_in_form): Form<SignInData>) -> Result<impl IntoResponse, (StatusCode, String)> {
@@ -35,7 +40,7 @@ pub mod signin {
         let argon2 = Argon2::default();
         if argon2.verify_password(sign_in_form.password.as_bytes(), &PasswordHash::new(&usr_data.0).map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, String::from("Internal Server Error")))?).is_ok() {
             let session = create_session(usr_data.1, &state.pool).await?;
-            let jar = jar.add(Cookie::build(("sc-auth-session", session)).http_only(true).same_site(SameSite::Lax).max_age(Duration::days(30)).path("/"));
+            let jar = jar.add(Cookie::build((SESSION_COOKIE_NAME, session)).http_only(true).same_site(SameSite::Lax).max_age(Duration::days(30)).path("/"));
             return Ok((AppendHeaders([("HX-Redirect", "/")]), jar))
         }
         Err((StatusCode::UNAUTHORIZED, String::from("Incorrect email or password, please try again")))
@@ -46,16 +51,17 @@ pub mod signup {
 
     use argon2::{password_hash::{rand_core::OsRng, SaltString}, Argon2, PasswordHasher};
     use askama::Template;
-    use axum::{extract::State, http::StatusCode, response::{AppendHeaders, Html, IntoResponse}, Form};
+    use axum::{extract::State, http::StatusCode, response::{AppendHeaders, Html, IntoResponse, Redirect}, Form};
+    use axum_extra::extract::CookieJar;
     use diesel_async::RunQueryDsl;
     use serde::Deserialize;
     use diesel::{insert_into, ExpressionMethods, QueryDsl};
-    use crate::{db::{models::NewUser, schema::users}, internal_error, AppState};
+    use crate::{db::{models::NewUser, schema::users}, internal_error, logged_in, AppState};
 
     #[derive(Template)]
     #[template(path="signup.html")]
     struct SignUpPage {
-
+        logged_in: bool,
     }
 
     #[derive(Debug, Deserialize)]
@@ -65,10 +71,13 @@ pub mod signup {
         password2: String
     }
 
-    pub async fn sign_up() -> impl IntoResponse {
-        let template = SignUpPage {};
+    pub async fn sign_up(jar: CookieJar, State(state): State<AppState>) -> impl IntoResponse {
+        if logged_in(&jar, &state.pool).await {
+            return Redirect::temporary("/").into_response()
+        }
+        let template = SignUpPage {logged_in: false};
         let html = template.render().unwrap();
-        return (StatusCode::OK, Html(html))
+        return (StatusCode::OK, Html(html)).into_response()
     }
 
     pub async fn process_sign_up(State(state): State<AppState>, Form(sign_up_form): Form<SignUpData>) -> Result<impl IntoResponse, impl IntoResponse> {
@@ -93,10 +102,34 @@ pub mod signup {
 
         let n = insert_into(users::table).values(&new_user).execute(&mut conn).await.map_err(internal_error)?;
         if n > 0 {
-            Ok(AppendHeaders([("HX-Redirect", "/")]).into_response())
+            Ok(AppendHeaders([("HX-Redirect", "/sign-in")]).into_response())
         } else {
             Err((StatusCode::INTERNAL_SERVER_ERROR, String::from("Interal Server Error")))
         }
     }
 
 }
+
+pub mod signout {
+
+    use axum::{extract::State, http::StatusCode, response::{AppendHeaders, IntoResponse}};
+    use axum_extra::extract::CookieJar;
+    use diesel_async::RunQueryDsl;
+    use diesel::{delete, ExpressionMethods};
+    use crate::{db::schema::sessions, internal_error, AppState, SESSION_COOKIE_NAME};
+
+    use super::session::validate_session;
+
+
+    pub async fn sign_out(jar: CookieJar, State(state): State<AppState>) -> Result<impl IntoResponse, (StatusCode, String)>{
+        let mut conn = state.pool.get().await.map_err(internal_error)?;
+        let session_cookie = jar.get(SESSION_COOKIE_NAME).ok_or((StatusCode::UNAUTHORIZED, String::from("Invalid Session")))?;
+        let session = validate_session(session_cookie.value().to_owned(), &state.pool).await?;
+        delete(sessions::table).filter(sessions::id.eq(session.id)).execute(&mut conn).await.map_err(internal_error)?;
+        let jar = jar.remove(SESSION_COOKIE_NAME);
+        return Ok((AppendHeaders([("HX-Redirect", "/")]), jar))
+        
+
+    }
+}
+ 

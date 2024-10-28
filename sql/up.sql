@@ -44,6 +44,7 @@ CREATE TABLE orders (
 CREATE TABLE productorders (
     product_id INTEGER NOT NULL,
     order_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL,
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (order_id) REFERENCES orders(id),
     PRIMARY KEY (product_id, order_id)

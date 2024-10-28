@@ -23,7 +23,11 @@
                 <li><a href="/">Home</a></li>
                 <li><a href="/browse">Shop</a></li>
                 <li><a href="/contact">Contact</a></li>
+                {% if logged_in %}
+                <li><button hx-post="/sign-out">Sign Out</button></li>
+                {% else %}
                 <li><a href="/sign-in">Log in</a></li>
+                {% endif %}
             </ul>
             <ul class="flex justify-center gap-3 basis-1/4">
                 <li><a href="/liked">Favourites</a></li>

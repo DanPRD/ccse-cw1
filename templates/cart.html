@@ -16,6 +16,12 @@
                             <p>Quantity: {{ product.1 }}</p>
                             <p>Cost Per Item: £{{product.0.cost}}</p>
                             <p>Item Total: £{{product.0.cost.clone() * product.1}}</p>
+                            <form hx-post="/cart" hx-target="#remove-resp">
+                                <button type="submit" class="underline">Remove From Cart</button>
+                                <input value="{{product.0.id}}" name="product_id" hidden>
+                                <input value="{{product.1}}" name="quantity" hidden>
+                                <input value="Remove" name="action" hidden/>
+                            </form>
                         </div>
                     </div>
 
@@ -27,6 +33,7 @@
                 <hr class="mb-1 bg-black bg-opacity-100 h-[2px] w-3/4"/>
                 <p>£{{ total_cost.as_ref().unwrap() }}</p>
                 <a href="/cart/checkout" class="rounded bg-black text-white w-24 text-center mt-1 hover:bg-opacity-85">Checkout</a>
+                <p class="text-red-600" id="remove-resp"></p>
             </div>
 
             {% else %}

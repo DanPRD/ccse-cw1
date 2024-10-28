@@ -47,7 +47,6 @@ pub async fn validate_session(token: String, pool: &Pool<AsyncMysqlConnection>) 
 }
 
 
-
 fn generate_session_token() -> String {
     let mut bytes = [0; 20];
     OsRng.fill_bytes(&mut bytes);

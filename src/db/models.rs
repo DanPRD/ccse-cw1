@@ -53,7 +53,7 @@ pub struct Address {
     pub county: String
 }
 
-#[derive(Identifiable, Selectable, Queryable, Associations)]
+#[derive(Identifiable, Selectable, Queryable, Associations, Insertable)]
 #[diesel(belongs_to(User))]
 #[diesel(belongs_to(Product))]
 #[diesel(table_name = cartitems)]
