@@ -66,3 +66,6 @@ CREATE TABLE likedproducts (
     FOREIGN KEY (product_id) REFERENCES products(id),
     PRIMARY KEY (product_id, user_id)
 )
+
+--user for unit and integration testing
+INSERT INTO users VALUES(NULL, "testemail@securecart.com", "$argon2id$v=19$m=19456,t=2,p=1$xuZYri28ZUljWt1CvMXuwA$/j2hNwrsniZslvru/Te4CgOQb80/D9qwg28ZG64CLRM", 0);

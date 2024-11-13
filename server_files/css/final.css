@@ -730,6 +730,10 @@ video {
   flex-basis: 40%;
 }
 
+.basis-3\/4 {
+  flex-basis: 75%;
+}
+
 .basis-3\/5 {
   flex-basis: 60%;
 }
@@ -791,6 +795,10 @@ video {
 
 .gap-1 {
   gap: 0.25rem;
+}
+
+.gap-12 {
+  gap: 3rem;
 }
 
 .gap-2 {
@@ -912,6 +920,10 @@ video {
   padding-top: 0.25rem;
 }
 
+.pt-4 {
+  padding-top: 1rem;
+}
+
 .pt-6 {
   padding-top: 1.5rem;
 }
@@ -926,10 +938,6 @@ video {
 
 .font-bebas {
   font-family: Bebas;
-}
-
-.font-biko {
-  font-family: Biko;
 }
 
 .font-title {

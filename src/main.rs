@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use axum::{extract::State, http::StatusCode, response::{Html, IntoResponse}, routing::{get, post}, Router};
 use axum_extra::extract::CookieJar;
-use ecom::{browse, cart, cart_post_handler, like_post_handler, liked, product};
+use ecom::{browse, cart, cart_post_handler, checkout, checkout_post_handler, like_post_handler, liked, product};
 use tower_http::{services::{ServeDir, ServeFile}, trace::TraceLayer};
 use tracing;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -13,6 +13,8 @@ use std::env;
 mod db;
 mod auth;
 mod ecom;
+#[cfg(test)]
+mod tests;
 use auth::{session::validate_session, signin::{process_sign_in, sign_in}, signout::sign_out, signup::{process_sign_up, sign_up}};
 
 const SESSION_COOKIE_NAME: &str = "sc-auth-session";
@@ -43,25 +45,8 @@ async fn main() {
     )
     .with(tracing_subscriber::fmt::layer())
     .init();
-
-    let app_state = AppState {
-        pool: create_pool().await
-    };
     
-
-    let root_app = Router::new()
-        .nest_service("/files", ServeDir::new("server_files").not_found_service(ServeFile::new("server_files\\static\\404.txt")))
-        .route("/", get(index))
-        .route("/sign-in", get(sign_in).post(process_sign_in))
-        .route("/sign-up", get(sign_up).post(process_sign_up))
-        .route("/sign-out", post(sign_out))
-        .route("/browse", get(browse))
-        .route("/cart", get(cart).post(cart_post_handler))
-        .route("/liked", get(liked).post(like_post_handler))
-        .route("/browse/:product", get(product))
-        .fallback_service(ServeFile::new("server_files\\static\\404.txt"))
-        .layer(TraceLayer::new_for_http()).with_state(app_state);
-
+    let root_app = create_srv().await;
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:1111").await.unwrap();
     tracing::debug!("listening on {}", listener.local_addr().unwrap());
@@ -72,6 +57,25 @@ async fn index(jar: CookieJar, State(state): State<AppState>) -> impl IntoRespon
     let template = HomePageTemplate {logged_in: logged_in(&jar, &state.pool).await};
     let html = template.render().unwrap();
     (StatusCode::OK, Html(html))
+}
+
+async fn create_srv() -> Router {
+    let app_state = AppState {
+        pool: create_pool().await
+    };
+    Router::new()
+    .nest_service("/files", ServeDir::new("server_files").not_found_service(ServeFile::new("server_files\\static\\404.txt")))
+    .route("/", get(index))
+    .route("/sign-in", get(sign_in).post(process_sign_in))
+    .route("/sign-up", get(sign_up).post(process_sign_up))
+    .route("/sign-out", post(sign_out))
+    .route("/browse", get(browse))
+    .route("/cart", get(cart).post(cart_post_handler))
+    .route("/cart/checkout", get(checkout).post(checkout_post_handler))
+    .route("/liked", get(liked).post(like_post_handler))
+    .route("/browse/:product", get(product))
+    .fallback_service(ServeFile::new("server_files\\static\\404.txt"))
+    .layer(TraceLayer::new_for_http()).with_state(app_state)
 }
 
 

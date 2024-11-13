@@ -1,12 +1,12 @@
 use askama::Template;
-use axum::{extract::{Path, State}, http::StatusCode, response::{AppendHeaders, Html, IntoResponse}, Form};
-use axum_extra::extract::CookieJar;
+use axum::{extract::{Path, State}, http::StatusCode, response::{AppendHeaders, Html, IntoResponse}};
+use axum_extra::extract::{CookieJar, Form};
 use bigdecimal::BigDecimal;
-use diesel::{delete, dsl::{exists, insert_into}, ExpressionMethods, QueryDsl};
+use diesel::{delete, dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection, RunQueryDsl};
 use serde::Deserialize;
 
-use crate::{auth::session::validate_session, db::{models::{CartProduct, Product}, schema::{cartproducts, likedproducts, products}}, internal_error, logged_in, AppState, SESSION_COOKIE_NAME};
+use crate::{auth::session::validate_session, db::{models::{Address, CartProduct, Product}, schema::{cartproducts, likedproducts, products}}, internal_error, logged_in, AppState, SESSION_COOKIE_NAME};
 
 #[derive(Template)]
 #[template(path="browse.html")]
@@ -31,6 +31,16 @@ struct CartPageTemplate {
     total_cost: Option<BigDecimal>
 }
 
+#[derive(Template)]
+#[template(path="checkout.html")]
+struct CheckoutPageTemplate {
+    cartproducts: Option<Vec<(Product, i32)>>,
+    logged_in: bool,
+    saved_addresses: Option<Vec<Address>>,
+    total_cost: Option<BigDecimal>
+}
+
+
 #[derive(Deserialize)]
 pub enum Action {
     Add,
@@ -50,6 +60,61 @@ pub struct LikeAction {
     action: Action
 }
 
+#[derive(Debug, Deserialize)]
+pub struct CheckoutForm {
+    cardnum: String, //check is valid num
+    expiry: String,
+    cvv: String, //check is valid num
+    recipient_name: String,
+    line_1: String,
+    line_2: Option<String>,
+    postcode: String,
+    county: String,
+    save_addr: Option<String>
+}
+
+impl CheckoutForm {
+    fn verify_data(&mut self) -> Result<(), (StatusCode, String)> {
+        self.cardnum.retain(|c| !c.is_whitespace());
+        if !(self.cardnum.len() <= 16 && self.cardnum.parse::<u64>().is_ok()) { 
+            return Err((StatusCode::BAD_REQUEST, String::from("Please enter a valid card number")))
+        }
+        self.cvv.retain(|c| !c.is_whitespace());
+        if !(self.cvv.len() == 3 && self.cvv.parse::<u64>().is_ok()) {
+            return Err((StatusCode::BAD_REQUEST, String::from("Please enter a valid cvv number")))
+        }
+        self.postcode.retain(|c| !c.is_whitespace());
+        if !((self.postcode.len() <= 7 && self.postcode.len() >= 5)) {
+            return Err((StatusCode::BAD_REQUEST, String::from("Please enter a valid postcode")))
+        }
+        let dates: Vec<&str> = self.expiry.split("/").collect();
+        if dates.len() != 2 {
+            return Err((StatusCode::BAD_REQUEST, String::from("Please enter a valid expiry date")))
+        }
+        let current_year = time::OffsetDateTime::now_utc().year()-2000;
+        if !(dates[0].parse::<u8>().unwrap_or(255) <= 12 && (current_year as u8..=99).contains(&dates[1].parse::<u8>().unwrap_or(0))) {
+            return Err((StatusCode::BAD_REQUEST, String::from("Please enter a valid expiry date")))
+        }
+        Ok(())
+    }
+}
+
+/* 
+#[derive(Debug)]
+struct FormBool(bool);
+
+impl<'de> Deserialize<'de> for FormBool {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de> {
+        
+        Deserialize::deserialize(deserializer).map(|val: &str| match val {
+            "on" => FormBool(true),
+            "off" => FormBool(false),
+            _ => FormBool(false)
+        })
+    }
+} */
 
 
 
@@ -79,8 +144,9 @@ pub async fn product(Path(path): Path<String>, jar: CookieJar,  State(state): St
 
 pub async fn cart(jar: CookieJar, State(state): State<AppState>) -> Result<(StatusCode, Html<String>), (StatusCode, String)> {
     let template: CartPageTemplate;
-    if let Some(token) = jar.get("sc-auth-session") {
-        template = get_cart_items(&jar, token.value().to_owned(), &state.pool).await?;
+    if let Some(token) = jar.get(SESSION_COOKIE_NAME) {
+        let (products, total_cost) = get_cart_items(token.value().to_owned(), &state.pool).await?;
+        template = CartPageTemplate {products, total_cost, logged_in: logged_in(&jar, &state.pool).await};
     } else {
         template = CartPageTemplate {products: None, total_cost: None, logged_in: logged_in(&jar, &state.pool).await};
     }
@@ -88,15 +154,15 @@ pub async fn cart(jar: CookieJar, State(state): State<AppState>) -> Result<(Stat
     Ok((StatusCode::OK, Html(html)))    
 }
 
-async fn get_cart_items(jar: &CookieJar, session_token: String, pool: &Pool<AsyncMysqlConnection>) -> Result<CartPageTemplate, (StatusCode, String)> {
+async fn get_cart_items(session_token: String, pool: &Pool<AsyncMysqlConnection>) -> Result<(Option<Vec<(Product, i32)>>, Option<BigDecimal>), (StatusCode, String)> {
     let mut conn = pool.get().await.map_err(internal_error)?;
     let session = validate_session(session_token, pool).await?;
     let cartitems = products::table.inner_join(cartproducts::table).select((products::all_columns, cartproducts::quantity)).filter(cartproducts::user_id.eq(session.user_id)).load::<(Product, i32)>(&mut conn).await.map_err(internal_error)?;
     if cartitems.len() == 0 {
-        return Ok(CartPageTemplate {products: None, total_cost: None, logged_in: logged_in(&jar, &pool).await})
+        return Ok((None, None))
     }
     let total_cost: BigDecimal = cartitems.iter().map(|c| &c.0.cost * &c.1).sum();
-    return Ok(CartPageTemplate {products: Some(cartitems), total_cost: Some(total_cost), logged_in: logged_in(&jar, &pool).await});
+    return Ok((Some(cartitems), Some(total_cost)))
     
 }
 
@@ -150,3 +216,18 @@ pub async fn like_post_handler(jar: CookieJar, State(state): State<AppState>, Fo
 
     }
 }
+
+pub async fn checkout(jar: CookieJar, State(state): State<AppState>) -> Result<impl IntoResponse, (StatusCode, String)>  {
+    let session_cookie= jar.get(SESSION_COOKIE_NAME).ok_or((StatusCode::UNAUTHORIZED, String::from("401 unauthorized")))?;
+    let (cartproducts, total_cost) = get_cart_items(session_cookie.value().to_owned(), &state.pool).await?;
+    let template = CheckoutPageTemplate {logged_in: logged_in(&jar, &state.pool).await, saved_addresses: None, cartproducts, total_cost};
+    let html = template.render().unwrap();
+    Ok((StatusCode::OK, Html(html)))
+}
+
+pub async fn checkout_post_handler(jar: CookieJar, State(state): State<AppState>, Form(mut payload): Form<CheckoutForm>) -> Result<String, (StatusCode, String)> {
+    let session_cookie= jar.get(SESSION_COOKIE_NAME).ok_or((StatusCode::UNAUTHORIZED, String::from("401 unauthorized")))?;
+    let session = validate_session(session_cookie.value().to_owned(), &state.pool).await?;
+    payload.verify_data()?;
+    return Ok(String::from("Bought Item!"))
+}   
