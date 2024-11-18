@@ -66,7 +66,7 @@ diesel::table! {
         #[max_length = 255]
         id -> Varchar,
         user_id -> Integer,
-        expires_at -> Datetime,
+        expires_at -> Timestamptz,
     }
 }
 

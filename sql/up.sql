@@ -1,6 +1,5 @@
--- Your SQL goes here
 CREATE TABLE users (
-  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+  id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   email VARCHAR(255) NOT NULL,
   password VARCHAR(255) NOT NULL,
   is_admin BOOLEAN NOT NULL DEFAULT FALSE
@@ -9,12 +8,12 @@ CREATE TABLE users (
 CREATE TABLE sessions (
     id VARCHAR(255) PRIMARY KEY,
     user_id INT NOT NULL,
-    expires_at DATETIME NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) 
 );
 
 CREATE TABLE products (
-    id INTEGER AUTO_INCREMENT PRIMARY KEY,
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     title VARCHAR(255) NOT NULL,
     description VARCHAR(255) NOT NULL,
     imgname VARCHAR(255) NOT NULL,
@@ -22,8 +21,8 @@ CREATE TABLE products (
 );
 
 CREATE TABLE addresses (
-    id INTEGER AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id INTEGER NOT NULL,
     recipient_name VARCHAR(255) NOT NULL,
     line_1 VARCHAR(255) NOT NULL,
     line_2 VARCHAR(255) NOT NULL,
@@ -34,7 +33,7 @@ CREATE TABLE addresses (
 
 
 CREATE TABLE orders (
-    id INTEGER AUTO_INCREMENT PRIMARY KEY,
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id INTEGER NOT NULL,
     address_id INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id),
@@ -65,7 +64,7 @@ CREATE TABLE likedproducts (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (product_id) REFERENCES products(id),
     PRIMARY KEY (product_id, user_id)
-)
+);
 
 --user for unit and integration testing
-INSERT INTO users VALUES(NULL, "testemail@securecart.com", "$argon2id$v=19$m=19456,t=2,p=1$xuZYri28ZUljWt1CvMXuwA$/j2hNwrsniZslvru/Te4CgOQb80/D9qwg28ZG64CLRM", 0);
+INSERT INTO users VALUES(DEFAULT, 'testemail@securecart.com', '$argon2id$v=19$m=19456,t=2,p=1$xuZYri28ZUljWt1CvMXuwA$/j2hNwrsniZslvru/Te4CgOQb80/D9qwg28ZG64CLRM', FALSE);

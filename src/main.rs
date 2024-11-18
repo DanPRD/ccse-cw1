@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 use axum::{extract::State, http::StatusCode, response::{Html, IntoResponse}, routing::{get, post}, Router};
 use axum_extra::extract::CookieJar;
-use ecom::{browse, cart, cart_post_handler, checkout, checkout_post_handler, like_post_handler, liked, product};
+use ecom::{browse, cart, cart_post_handler, checkout, checkout_post_handler, like_post_handler, liked, orders, product};
 use tower_http::{services::{ServeDir, ServeFile}, trace::TraceLayer};
 use tracing;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use askama::Template;
-use diesel_async::{pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager}, AsyncMysqlConnection};
+use diesel_async::{pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager}, AsyncPgConnection};
 use dotenvy::dotenv;
 use std::env;
 
@@ -21,7 +21,7 @@ const SESSION_COOKIE_NAME: &str = "sc-auth-session";
 
 #[derive(Clone)]
 struct AppState {
-    pool: Pool<AsyncMysqlConnection>
+    pool: Pool<AsyncPgConnection>
 }
 
 #[derive(Template)]
@@ -74,16 +74,17 @@ async fn create_srv() -> Router {
     .route("/cart/checkout", get(checkout).post(checkout_post_handler))
     .route("/liked", get(liked).post(like_post_handler))
     .route("/browse/:product", get(product))
+    .route("/orders", get(orders))
     .fallback_service(ServeFile::new("server_files\\static\\404.txt"))
     .layer(TraceLayer::new_for_http()).with_state(app_state)
 }
 
 
 
-async fn create_pool() -> Pool<AsyncMysqlConnection> {
+async fn create_pool() -> Pool<AsyncPgConnection> {
     dotenv().ok();
     let url = env::var("DATABASE_URL").expect("Environment variable DATABASE_URL must be set");
-    let conf = AsyncDieselConnectionManager::<AsyncMysqlConnection>::new(&url);
+    let conf = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&url);
     return Pool::builder(conf).build().unwrap_or_else(|_| panic!("Error creating pooled connection to db {}", url));
 }
 
@@ -95,7 +96,7 @@ where
     (StatusCode::INTERNAL_SERVER_ERROR, String::from("Interal Server Error"))
 }
 
-async fn logged_in(jar: &CookieJar, pool: &Pool<AsyncMysqlConnection>) -> bool {
+async fn logged_in(jar: &CookieJar, pool: &Pool<AsyncPgConnection>) -> bool {
     if let Some(cookie) = jar.get(SESSION_COOKIE_NAME) {
         return validate_session(cookie.value().to_owned(), pool).await.is_ok()
     }

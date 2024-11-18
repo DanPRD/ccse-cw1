@@ -1,7 +1,7 @@
 use argon2::password_hash::rand_core::{OsRng, RngCore};
 use axum::http::StatusCode;
-use diesel::{dsl::{delete, insert_into}, ExpressionMethods, QueryDsl};
-use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection, RunQueryDsl};
+use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
+use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 use sha2::Digest;
 use time::Duration;
 
@@ -10,7 +10,7 @@ use crate::{db::{models::Session, schema::sessions}, internal_error};
 
 
 
-pub async fn create_session(user_id: i32, pool: &Pool<AsyncMysqlConnection>) -> Result<String, (StatusCode, String)>{
+pub async fn create_session(user_id: i32, pool: &Pool<AsyncPgConnection>) -> Result<String, (StatusCode, String)>{
     let mut conn = pool.get().await.map_err(internal_error)?;
     let mut hasher = sha2::Sha256::new();
     let token = generate_session_token();
@@ -33,7 +33,7 @@ pub async fn create_session(user_id: i32, pool: &Pool<AsyncMysqlConnection>) -> 
     Ok(token)
 }
 
-pub async fn validate_session(token: String, pool: &Pool<AsyncMysqlConnection>) -> Result<Session, (StatusCode, String)> {
+pub async fn validate_session(token: String, pool: &Pool<AsyncPgConnection>) -> Result<Session, (StatusCode, String)> {
     let mut conn = pool.get().await.map_err(internal_error)?;
     let mut hasher = sha2::Sha256::new();
     hasher.update(token.as_bytes());

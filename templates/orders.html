@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block head %}
+{% endblock %}
+
+{% block content %}
+        <div class="flex justify-center gap-6 p-4 pb-0 pt-0 border-l-2 border-r-2 border-black border-opacity-40 w-3/5 absolute top-20 bottom-0 left-1/2 -translate-x-1/2 font-bebas text-lg" id="main">
+            {% if orders.is_some() %}
+            <div class="flex flex-col basis-3/5 relative overflow-y-auto">   
+                {% for (count, order) in orders.as_ref().unwrap().iter().enumerate() %}
+                <div class="flex w-full mt-2 p-2 border-2 border-black rounded">
+                    <div class="flex w-full justify-between">
+                        <div class="ml-2">
+                            <p>Order #{{count}}</p>
+                            <p>For: {{order.address.recipient_name}}</p>
+                            <p>{{order.address.line_1}}, {{order.address.postcode}}</p>
+                        </div>
+                        <div class="flex flex-col text-right">
+                            <p>Order Total: {{order.total}}</p>
+                            <form hx-post="/orders" hx-target="#main" hx-target="#main" hx-target-4*="#err-resp">
+                                <button type="submit" class="underline">View Order Details</button>
+                                <input value="{{order.info.id}}" name="order_id" hidden>
+                            </form>
+                            <p class="text-red-600" id="err-resp"></p>
+                        </div>
+                    </div>
+
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>It looks like you haven't ordered anything :(</p>
+
+            {% endif %}
+        </div>
+        {% call super() %}
+{% endblock %}

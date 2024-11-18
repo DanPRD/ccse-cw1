@@ -4,7 +4,7 @@
 {% endblock %}
 
 {% block content %}
-        <form hx-post="/sign-in" hx-ext="response-targets" hx-target-4*="#responses" class="flex flex-col absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 justify-center items-center gap-2 font-bebas text-lg">  
+        <form hx-post="/sign-in" hx-ext="response-targets" hx-target-4*="#responses" hx-target-500="#responses" class="flex flex-col absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 justify-center items-center gap-2 font-bebas text-lg">  
             <h1 class="self-start text-xl -mb-2">Sign In Form</h1>
             <hr class="bg-black h-[2px] w-3/4 self-start"/>
             <input class="border-2 border-black rounded bg-black bg-opacity-10 p-2 pl-3 outline-none w-72" placeholder="Enter E-mail" type="text" name="email" autocomplete="username" id="email" required/>

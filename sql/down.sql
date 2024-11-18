@@ -1,3 +1,4 @@
+USE ecom_db;
 DROP TABLE users;
 DROP TABLE sessions;
 DROP TABLE products;

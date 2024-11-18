@@ -4,7 +4,7 @@
 {% endblock %}
 
 {% block content %}
-        <div class="flex justify-center gap-6 p-4 pb-0 pt-4 border-l-2 border-r-2 border-black border-opacity-40 w-3/5 absolute top-20 bottom-0 left-1/2 -translate-x-1/2 font-bebas text-lg">
+        <div hx-ext="response-targets" class="flex justify-center gap-6 p-4 pb-0 pt-4 border-l-2 border-r-2 border-black border-opacity-40 w-3/5 absolute top-20 bottom-0 left-1/2 -translate-x-1/2 font-bebas text-lg" id="main">
             <div class="flex basis-3/4 flex-col gap-12">
                 {% if let Some(addresses) = saved_addresses %}  
                 <div>
@@ -65,11 +65,12 @@
                     <p>£{{total_cost.as_ref().unwrap()}}</p>
                 </div>
 
-                <button hx-post="/cart/checkout" hx-include="#checkout-form" class="rounded bg-black text-white w-24 text-center mt-1 hover:bg-opacity-85">Buy Now</button>
+                <button hx-post="/cart/checkout" hx-include="#checkout-form" hx-target="#main" hx-target-4*="#err-resp" class="rounded bg-black text-white w-24 text-center mt-1 hover:bg-opacity-85">Buy Now</button>
+                <p class="text-red-600 mt-2" id="err-resp"></p>
                 {% else %}
                 <p>Nothing in your Cart :(</p>      
                 {% endif %}           
-                </div>
+                </div>  
             </div>
 
         </div>

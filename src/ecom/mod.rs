@@ -2,11 +2,11 @@ use askama::Template;
 use axum::{extract::{Path, State}, http::StatusCode, response::{AppendHeaders, Html, IntoResponse}};
 use axum_extra::extract::{CookieJar, Form};
 use bigdecimal::BigDecimal;
-use diesel::{delete, dsl::insert_into, ExpressionMethods, QueryDsl};
-use diesel_async::{pooled_connection::deadpool::Pool, AsyncMysqlConnection, RunQueryDsl};
+use diesel::{debug_query, delete, expression::AsExpression, insert_into, sql_query, sql_types::Integer, ExpressionMethods, Insertable, IntoSql, QueryDsl};
+use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQueryDsl};
 use serde::Deserialize;
 
-use crate::{auth::session::validate_session, db::{models::{Address, CartProduct, Product}, schema::{cartproducts, likedproducts, products}}, internal_error, logged_in, AppState, SESSION_COOKIE_NAME};
+use crate::{auth::session::validate_session, db::{models::{Address, CartProduct, Order, OrderWithId, Product}, schema::{addresses, cartproducts, likedproducts, orders, productorders, products}}, internal_error, logged_in, AppState, SESSION_COOKIE_NAME};
 
 #[derive(Template)]
 #[template(path="browse.html")]
@@ -40,6 +40,17 @@ struct CheckoutPageTemplate {
     total_cost: Option<BigDecimal>
 }
 
+#[derive(Template)]
+#[template(path="orders.html")]
+struct OrderPageTemplate {
+    logged_in: bool,
+    orders: Option<Vec<OrderInfo>>
+}
+
+#[derive(Template)]
+#[template(path="success_checkout.html")]
+struct CheckoutSuccess;
+
 
 #[derive(Deserialize)]
 pub enum Action {
@@ -58,6 +69,13 @@ pub struct CartAction {
 pub struct LikeAction {
     product_id: i32,
     action: Action
+}
+
+pub struct OrderInfo {
+    info: OrderWithId,
+    address: Address,
+    products: Vec<(Product, i32)>,
+    total: BigDecimal
 }
 
 #[derive(Debug, Deserialize)]
@@ -95,7 +113,24 @@ impl CheckoutForm {
         if !(dates[0].parse::<u8>().unwrap_or(255) <= 12 && (current_year as u8..=99).contains(&dates[1].parse::<u8>().unwrap_or(0))) {
             return Err((StatusCode::BAD_REQUEST, String::from("Please enter a valid expiry date")))
         }
+        if self.recipient_name.is_empty() {
+            return Err((StatusCode::BAD_REQUEST, String::from("Please enter your name")))
+        }
+        if self.line_1.is_empty() || self.county.is_empty() {
+            return Err((StatusCode::BAD_REQUEST, String::from("Please enter your address")))
+        }
         Ok(())
+    }
+
+    fn parse_address(self, user_id: i32) -> Address {
+        Address {
+            user_id,
+            recipient_name: self.recipient_name,
+            line_1: self.line_1,
+            line_2: self.line_2.unwrap_or_default(),
+            postcode: self.postcode,
+            county: self.county
+        }
     }
 }
 
@@ -154,7 +189,7 @@ pub async fn cart(jar: CookieJar, State(state): State<AppState>) -> Result<(Stat
     Ok((StatusCode::OK, Html(html)))    
 }
 
-async fn get_cart_items(session_token: String, pool: &Pool<AsyncMysqlConnection>) -> Result<(Option<Vec<(Product, i32)>>, Option<BigDecimal>), (StatusCode, String)> {
+async fn get_cart_items(session_token: String, pool: &Pool<AsyncPgConnection>) -> Result<(Option<Vec<(Product, i32)>>, Option<BigDecimal>), (StatusCode, String)> {
     let mut conn = pool.get().await.map_err(internal_error)?;
     let session = validate_session(session_token, pool).await?;
     let cartitems = products::table.inner_join(cartproducts::table).select((products::all_columns, cartproducts::quantity)).filter(cartproducts::user_id.eq(session.user_id)).load::<(Product, i32)>(&mut conn).await.map_err(internal_error)?;
@@ -193,7 +228,7 @@ pub async fn liked(jar: CookieJar, State(state): State<AppState>) -> Result<impl
     let session_cookie= jar.get(SESSION_COOKIE_NAME).ok_or((StatusCode::UNAUTHORIZED, String::from("401 unauthorized")))?;
     let session = validate_session(session_cookie.value().to_owned(), &state.pool).await?;
     let products = products::table.select(products::all_columns).inner_join(likedproducts::table).filter(likedproducts::user_id.eq(session.user_id)).load::<Product>(&mut conn).await.map_err(internal_error)?;
-    let template = BrowsePageTemplate {products, logged_in: logged_in(&jar, &state.pool).await};
+    let template = BrowsePageTemplate {products, logged_in: true};
     let html = template.render().unwrap();
     Ok((StatusCode::OK, Html(html)))
 }
@@ -226,8 +261,38 @@ pub async fn checkout(jar: CookieJar, State(state): State<AppState>) -> Result<i
 }
 
 pub async fn checkout_post_handler(jar: CookieJar, State(state): State<AppState>, Form(mut payload): Form<CheckoutForm>) -> Result<String, (StatusCode, String)> {
+    let mut conn = state.pool.get().await.map_err(internal_error)?;
     let session_cookie= jar.get(SESSION_COOKIE_NAME).ok_or((StatusCode::UNAUTHORIZED, String::from("401 unauthorized")))?;
     let session = validate_session(session_cookie.value().to_owned(), &state.pool).await?;
     payload.verify_data()?;
-    return Ok(String::from("Bought Item!"))
-}   
+    if cartproducts::table.filter(cartproducts::user_id.eq(session.user_id)).count().get_result::<i64>(&mut conn).await.map_err(internal_error)? == 0 {
+        return Err((StatusCode::BAD_REQUEST, String::from("Please add items to your cart to buy them!")));
+    }
+    let address_id = insert_into(addresses::table).values(payload.parse_address(session.user_id)).returning(addresses::id).get_result::<i32>(&mut conn).await.map_err(internal_error)?;
+    let order_id = insert_into(orders::table).values(Order {user_id: session.user_id, address_id}).returning(orders::id).get_result::<i32>(&mut conn).await.map_err(internal_error)?;
+    sql_query(format!("insert into productorders select product_id, {}, quantity from cartproducts where cartproducts.user_id = {};", order_id as i32, session.user_id)).execute(&mut conn).await.map_err(internal_error)?;
+    diesel::delete(cartproducts::table).filter(cartproducts::user_id.eq(session.user_id)).execute(&mut conn).await.map_err(internal_error)?;
+    let html = CheckoutSuccess.render().unwrap();
+    return Ok(html)
+}
+
+
+pub async fn orders(jar: CookieJar, State(state): State<AppState>)  -> Result<impl IntoResponse, (StatusCode, String)> {
+    let mut usr_orders = vec![];
+    let mut conn = state.pool.get().await.map_err(internal_error)?;
+    let session_cookie= jar.get(SESSION_COOKIE_NAME).ok_or((StatusCode::UNAUTHORIZED, String::from("401 unauthorized")))?;
+    let session = validate_session(session_cookie.value().to_owned(), &state.pool).await?;
+    let orders = orders::table.select(orders::all_columns).filter(orders::user_id.eq(session.user_id)).load::<OrderWithId>(&mut conn).await.map_err(internal_error)?;
+    for order in orders {
+        let addr = addresses::table.select((addresses::user_id, addresses::recipient_name, addresses::line_1, addresses::line_2, addresses::postcode, addresses::county)).filter(addresses::id.eq(order.address_id)).first::<Address>(&mut conn).await.map_err(internal_error)?;
+        usr_orders.push(OrderInfo {info: order, address: addr, products: vec![], total: 0.into()})
+    }
+    let usr_orders = if usr_orders.is_empty() {
+        None
+    } else {
+        Some(usr_orders)
+    };
+    let template = OrderPageTemplate {logged_in: true, orders: usr_orders};
+    let html = template.render().unwrap();
+    Ok(Html(html))
+}
