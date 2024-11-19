@@ -1,12 +1,14 @@
 #![allow(dead_code)]
 use axum::{extract::State, http::StatusCode, response::{Html, IntoResponse}, routing::{get, post}, Router};
 use axum_extra::extract::CookieJar;
-use ecom::{browse, cart, cart_post_handler, checkout, checkout_post_handler, like_post_handler, liked, orders, product};
+use db::{models::Product, schema::products};
+use diesel::{define_sql_function, IntoSql, QueryDsl};
+use ecom::{browse, cart, cart_post_handler, checkout, checkout_post_handler, like_post_handler, liked, orders, product, view_order_details};
 use tower_http::{services::{ServeDir, ServeFile}, trace::TraceLayer};
 use tracing;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use askama::Template;
-use diesel_async::{pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager}, AsyncPgConnection};
+use diesel_async::{pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager}, AsyncPgConnection, RunQueryDsl};
 use dotenvy::dotenv;
 use std::env;
 
@@ -27,8 +29,11 @@ struct AppState {
 #[derive(Template)]
 #[template(path="homepage.html")]
 struct HomePageTemplate {
-    logged_in: bool
+    logged_in: bool,
+    products: Vec<Product>
 }
+
+define_sql_function!( fn random() -> Text);
 
 
 #[tokio::main]
@@ -53,10 +58,12 @@ async fn main() {
     axum::serve(listener, root_app).await.unwrap();
 }
 
-async fn index(jar: CookieJar, State(state): State<AppState>) -> impl IntoResponse {
-    let template = HomePageTemplate {logged_in: logged_in(&jar, &state.pool).await};
+async fn index(jar: CookieJar, State(state): State<AppState>) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let mut conn = state.pool.get().await.map_err(internal_error)?;
+    let products: Vec<Product> = products::table.select(products::all_columns).order(random()).limit(7).load(&mut conn).await.map_err(internal_error)?;
+    let template = HomePageTemplate {logged_in: logged_in(&jar, &state.pool).await, products};
     let html = template.render().unwrap();
-    (StatusCode::OK, Html(html))
+    Ok((StatusCode::OK, Html(html)))
 }
 
 async fn create_srv() -> Router {
@@ -74,7 +81,7 @@ async fn create_srv() -> Router {
     .route("/cart/checkout", get(checkout).post(checkout_post_handler))
     .route("/liked", get(liked).post(like_post_handler))
     .route("/browse/:product", get(product))
-    .route("/orders", get(orders))
+    .route("/orders", get(orders).post(view_order_details))
     .fallback_service(ServeFile::new("server_files\\static\\404.txt"))
     .layer(TraceLayer::new_for_http()).with_state(app_state)
 }

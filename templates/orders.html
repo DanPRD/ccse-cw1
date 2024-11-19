@@ -16,7 +16,6 @@
                             <p>{{order.address.line_1}}, {{order.address.postcode}}</p>
                         </div>
                         <div class="flex flex-col text-right">
-                            <p>Order Total: {{order.total}}</p>
                             <form hx-post="/orders" hx-target="#main" hx-target="#main" hx-target-4*="#err-resp">
                                 <button type="submit" class="underline">View Order Details</button>
                                 <input value="{{order.info.id}}" name="order_id" hidden>

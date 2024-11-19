@@ -8,7 +8,7 @@ CREATE TABLE users (
 CREATE TABLE sessions (
     id VARCHAR(255) PRIMARY KEY,
     user_id INT NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) 
 );
 

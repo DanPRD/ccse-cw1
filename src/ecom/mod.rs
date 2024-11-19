@@ -51,6 +51,12 @@ struct OrderPageTemplate {
 #[template(path="success_checkout.html")]
 struct CheckoutSuccess;
 
+#[derive(Template)]
+#[template(path="order_details.html")]
+struct OrderDetails {
+    order_info: OrderInfo
+}
+
 
 #[derive(Deserialize)]
 pub enum Action {
@@ -89,6 +95,11 @@ pub struct CheckoutForm {
     postcode: String,
     county: String,
     save_addr: Option<String>
+}
+
+#[derive(Deserialize)]
+pub struct OrderDetailsForm {
+    order_id: i32
 }
 
 impl CheckoutForm {
@@ -295,4 +306,20 @@ pub async fn orders(jar: CookieJar, State(state): State<AppState>)  -> Result<im
     let template = OrderPageTemplate {logged_in: true, orders: usr_orders};
     let html = template.render().unwrap();
     Ok(Html(html))
+}
+
+
+pub async fn view_order_details(jar: CookieJar, State(state): State<AppState>, Form(payload): Form<OrderDetailsForm>) -> Result<Html<String>, (StatusCode, String)> {
+    let mut conn = state.pool.get().await.map_err(internal_error)?;
+    let session_cookie= jar.get(SESSION_COOKIE_NAME).ok_or((StatusCode::UNAUTHORIZED, String::from("401 unauthorized")))?;
+    let session = validate_session(session_cookie.value().to_owned(), &state.pool).await?;
+    let address: Address = addresses::table.select((addresses::user_id, addresses::recipient_name, addresses::line_1, addresses::line_2, addresses::postcode, addresses::county)).inner_join(orders::table).filter(orders::id.eq(payload.order_id)).filter(orders::user_id.eq(session.user_id)).first::<Address>(&mut conn).await.map_err(internal_error)?;
+    let products = productorders::table.inner_join(products::table).select((products::all_columns, productorders::quantity)).filter(productorders::order_id.eq(payload.order_id));
+    println!("{}", debug_query::<diesel::pg::Pg, _>(&products).to_string());
+    let products = products.load::<(Product, i32)>(&mut conn).await.map_err(internal_error)?;
+    println!("{:?}", products);
+    let total: BigDecimal = products.iter().map(|c| &c.0.cost * &c.1).sum();
+    let html = OrderDetails {order_info: OrderInfo { address, info: OrderWithId::default(), products, total}}.render().unwrap();
+    Ok(Html(html))
+
 }

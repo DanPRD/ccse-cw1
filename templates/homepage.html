@@ -4,8 +4,31 @@
 {% endblock %}
 
 {% block content %}
-        <div>
-            <p>Home</p>
+        <div class="flex flex-col items-center h-[calc(100vh-5rem)] bg-red relative font-title">
+            <div class="flex justify-between basis-1/2 bg-purple-200 h-full w-full">
+                <div class="ml-20 mt-16 flex flex-col items-center">
+                    <p class="text-4xl">Stunning deals availble now sitewide!</p>
+                    <p class=" self-start text-2xl">Dont miss out on the biggest sale this year...</p>
+                    <a href="/browse" class="mt-4 w-1/2 flex bg-black text-white pt-1 pb-1 pl-3 pr-3 hover:bg-opacity-85 rounded min-w-28 justify-center">SHOP NOW!</a>
+                </div>
+                <img class="h-96 self-end mr-14" src="/files/images/deal.png"/>
+            </div>
+            <div class="flex basis-1/2 h-full w-full relative gap-5 items-center p-5 justify-between">
+                <div class="absolute self-start">
+                    <p class="text-2xl">Our best selling items:</p>
+                    <hr class="bg-black bg-opacity-100 h-[3px] w-[150%]"/>
+                </div>
+                {% for product in products %}
+                <a href='/browse/{{product.imgname.strip_suffix(".jpg").unwrap().to_string() }}' class=" flex flex-col items-center justify-center gap-1 w-60 font-bebas text-lg text-nowrap">
+                    <img class="w-52 h-52" src="/files/images/{{ product.imgname }}"/>
+                    <div class="flex  justify-evenly w-full">
+                        <h1>{{product.title}}</h1>
+                        <h1>£{{product.cost}}</h1>
+                    </div>
+                    <hr class="mb-2 bg-black bg-opacity-100 h-[2px] w-full"/>
+                </a>
+                {% endfor %}
+            </div>
         </div>
         {% call super() %}
 {% endblock %}

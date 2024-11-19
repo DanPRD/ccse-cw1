@@ -72,7 +72,7 @@ pub struct Order {
     pub address_id: i32
 }
 
-#[derive(Queryable)]
+#[derive(Queryable, Default)]
 #[diesel(table_name = orders)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct OrderWithId {

@@ -1,0 +1,35 @@
+<div class="flex flex-col basis-3/5 relative overflow-y-auto">   
+    {% for (product, quantity) in order_info.products %}
+    <div class="flex w-full mt-2 p-2 border-2 border-black rounded">
+        <img class="w-36 h-36" src="/files/images/{{ product.imgname }}"/>
+        <div class="flex w-full justify-between">
+            <h1 class="ml-2">{{product.title}}</h1>
+            <div class="flex flex-col text-right">
+                <p>Quantity: {{ quantity }}</p>
+                <p>Cost Per Item: £{{product.cost.clone()}}</p>
+                <p>Item Total: £{{product.cost.clone() * quantity}}</p>
+            </div>
+        </div>
+
+    </div>
+    {% endfor %}
+</div>
+<div class="flex flex-col basis-2/5 gap-4">
+    <div>
+        <h1>Total Cost</h1>
+        <hr class="mb-1 bg-black bg-opacity-100 h-[2px] w-3/4"/>
+        <p>£{{ order_info.total }}</p>
+    </div>
+    <div class="flex flex-col">
+        <h1 >Address</h1>
+        <hr class="mb-1 bg-black bg-opacity-100 h-[2px] w-3/4"/>
+        <p>{{order_info.address.recipient_name}}</p>
+        <p>{{order_info.address.line_1}}, {{order_info.address.line_2}}</p>
+        <p>{{order_info.address.county}}, {{order_info.address.postcode}}</p>
+    </div>
+
+
+
+
+    <p class="text-red-600" id="remove-resp"></p>
+</div>
