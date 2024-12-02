@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>SecureCart</title>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="https://unpkg.com/htmx.org@2.0.3" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/htmx-ext-response-targets@2.0.0/response-targets.js"></script>
+        <link rel="icon" href="/files/images/favicon.svg" sizes="any" type="image/svg+xml">
+        <link href="/files/css/final.css" rel="stylesheet">
+        {% block head %}
+        {% endblock %}  
+
+        
+    </head>
+
+    <body class="bg-white text-black">
+        <div class="h-20 flex bg-white p-3 items-center justify-between border-b-2 border-black font-bebas text-lg" id="header">
+            <div class="flex font-title text-5xl basis-1/5 justify-center">
+                <h1>SecureCart</h1>
+            </div>
+            <ul class="flex justify-center gap-5 basis-3/5">
+                <li><a href="/adminpanel">Dashboard</a></li>
+            </ul>
+            <ul class="flex justify-center gap-3 basis-1/5">
+                <li><button hx-post="/sign-out">Sign Out</button></li>
+            </ul>
+        </div>
+        <div id="content" class="font-bebas text-lg flex">
+            <form hx-post="/adminpanel/addproduct" hx-ext="response-targets" hx-target="#outcome" hx-target-4*="#responses" hx-target-500="#responses" enctype="multipart/form-data" class="flex flex-col gap-3 w-1/6 p-2 items-start">
+                <div>
+                    <h1>Add new product to shop</h1>
+                    <hr class="bg-black h-[2px] w-[150%] self-start"/>
+                </div>
+                <div>
+                    <label for="image" class="pl-2 pr-2 bg-black rounded hover:cursor-pointer text-white">
+                        <input class="hidden" type="file" id="image" name="image" accept=".jpg" required/>
+                        Upload Image
+                    </label>
+                    <p id="file-details"></p>
+                </div>
+                <input class="rounded border-black border-2 outline-none pl-1" id="title" name="title" placeholder="Product Title" required/>
+                <input class="rounded border-black border-2 outline-none pl-1" type="number" step=".01" id="cost" name="cost" placeholder="Product Cost" required/>
+                <textarea class="resize-none rounded border-black border-2 outline-none pl-1" cols="30" rows="5"  id="description" name="description" placeholder="Product Description" required></textarea>
+                <button class="pl-2 pr-2 bg-black rounded text-white" type="submit">Add Now</button>
+                <p id="outcome"></p>
+                <p class="text-red-600" id="responses"></p>
+            </form>
+            <div id="prodform">
+                <div class="flex flex-col">
+                    <h1>Un/Re-list or remove product</h1>
+                    <hr class="bg-black h-[2px] w-full self-start"/>
+                    <div class="flex flex-col gap-3 p-2">
+                        {% for product in products %}
+                        <form hx-ext="response-targets" hx-target-4*="#err-resp" class="p-1 flex gap-2 rounded border-black border-2 outline-none pl-1 w-96">
+                            <h1 class="basis-1/2">{{product.title}}</h1>
+                            <input hidden value="{{product.id}}" id="id" name="id"/>
+                            <div class="flex basis-1/2 gap-5 justify-center">
+                                {% if product.listed %}
+                                <button hx-post="/adminpanel/unlist">Unlist</button>
+                                {% else %}
+                                <button hx-post="/adminpanel/relist">ReList</button>
+                                {% endif %}
+                                <button hx-post="/adminpanel/removeproduct">Remove</button>
+                            </div>
+                        </form>
+                        {% endfor %}    
+                    </div>
+                    <p class="text-red-600 text-wrap w-80" id="err-resp"></p>
+                </div>
+            </div>
+        </div>
+    </body>
+
+
+<script>
+    const file = document.querySelector('#image');
+    file.addEventListener('change', (e) => {
+        const [file] = e.target.files;
+        const { name: fileName, size } = file;
+        const fileSize = (size / 1000).toFixed(2);
+        const fileNameAndSize = `${fileName} - ${fileSize}KB`;
+        document.querySelector('#file-details').textContent = fileNameAndSize;
+    });
+
+</script>
+</html>
+

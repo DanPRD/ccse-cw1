@@ -34,14 +34,17 @@ pub mod signin {
     }
 
     pub async fn process_sign_in(state: State<AppState>, jar: CookieJar, Form(sign_in_form): Form<SignInData>) -> Result<impl IntoResponse, (StatusCode, String)> {
-        tracing::debug!("{:?}", sign_in_form);
         let mut conn = state.pool.get().await.map_err(internal_error)?;
-        let usr_data: (String, i32) = users::table.select((users::password, users::id)).filter(users::email.eq(sign_in_form.email)).first(&mut conn).await.map_err(|_| (StatusCode::UNAUTHORIZED, String::from("Incorrect email or password, please try again")))?;
+        let usr_data: (String, i32, bool) = users::table.select((users::password, users::id, users::is_admin)).filter(users::email.eq(sign_in_form.email)).first(&mut conn).await.map_err(|_| (StatusCode::UNAUTHORIZED, String::from("Incorrect email or password, please try again")))?;
         let argon2 = Argon2::default();
         if argon2.verify_password(sign_in_form.password.as_bytes(), &PasswordHash::new(&usr_data.0).map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, String::from("Internal Server Error")))?).is_ok() {
             let session = create_session(usr_data.1, &state.pool).await?;
             let jar = jar.add(Cookie::build((SESSION_COOKIE_NAME, session)).http_only(true).same_site(SameSite::Lax).max_age(Duration::days(30)).path("/"));
-            return Ok((AppendHeaders([("HX-Redirect", "/")]), jar))
+            if usr_data.2 {
+                return Ok((AppendHeaders([("HX-Redirect", "/adminpanel")]), jar))
+            } else {
+                return Ok((AppendHeaders([("HX-Redirect", "/")]), jar))
+            }
         }
         Err((StatusCode::UNAUTHORIZED, String::from("Incorrect email or password, please try again")))
     }
@@ -81,7 +84,6 @@ pub mod signup {
     }
 
     pub async fn process_sign_up(State(state): State<AppState>, Form(sign_up_form): Form<SignUpData>) -> Result<impl IntoResponse, impl IntoResponse> {
-        tracing::debug!("{:?}", sign_up_form);
         if sign_up_form.password != sign_up_form.password2 {
             return Err((StatusCode::BAD_REQUEST, String::from("ERROR: Your passwords do not match, please try again")))
         }

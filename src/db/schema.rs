@@ -58,6 +58,7 @@ diesel::table! {
         #[max_length = 255]
         imgname -> Varchar,
         cost -> Decimal,
+        listed -> Bool,
     }
 }
 

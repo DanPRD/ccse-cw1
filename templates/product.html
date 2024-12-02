@@ -16,6 +16,7 @@
                 <p class="">{{ product.description }}</p>
                 {% if logged_in %}
                 <div class="flex justify-evenly items-end">
+                    {% if product.listed %}
                     {% if is_liked %}
                     <form hx-post="/liked" hx-target="#fav-resp" hx-ext="response-targets" hx-target-4*="#error-resp" class="flex flex-col justify-center">
                         <input value="{{product.id}}" name="product_id" hidden/>
@@ -40,6 +41,9 @@
                     </form>
                 </div>
                 <p class="text-red-600" id="error-resp"></p>
+                {% else %}
+                <p>Sorry, this product is no longer for sale</p>
+                {% endif %}
                 {% else %}
                 <p class="">Please <a class="underline" href="/sign-in">login</a> to purchase or favourite products</p>
                 {% endif %}

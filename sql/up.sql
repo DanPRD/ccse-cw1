@@ -17,7 +17,8 @@ CREATE TABLE products (
     title VARCHAR(255) NOT NULL,
     description VARCHAR(255) NOT NULL,
     imgname VARCHAR(255) NOT NULL,
-    cost DECIMAL(4, 2) NOT NULL
+    cost DECIMAL(4, 2) NOT NULL,
+    listed BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE addresses (
@@ -68,3 +69,5 @@ CREATE TABLE likedproducts (
 
 --user for unit and integration testing
 INSERT INTO users VALUES(DEFAULT, 'testemail@securecart.com', '$argon2id$v=19$m=19456,t=2,p=1$xuZYri28ZUljWt1CvMXuwA$/j2hNwrsniZslvru/Te4CgOQb80/D9qwg28ZG64CLRM', FALSE);
+--default admin user, pass=@8*aUxB2#fEnT]E
+INSERT INTO users VALUES(DEFAULT, 'admin@securecart.com', '$argon2id$v=19$m=19456,t=2,p=1$Rh8lGJODGahQiqlyvR48/Q$gNzg7gIWtjEI6pFnrgh1ZWxMxuS/xfGmvlEI/sSPRns', TRUE);

@@ -37,6 +37,18 @@ pub struct Product {
     pub title: String,
     pub description: String,
     pub imgname: String,
+    pub cost: BigDecimal,
+    pub listed: bool
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = products)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct NewProduct {
+    pub id: Option<i32>,
+    pub title: String,
+    pub description: String,
+    pub imgname: String,
     pub cost: BigDecimal
 }
 

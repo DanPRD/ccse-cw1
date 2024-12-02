@@ -7,6 +7,7 @@ use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection, RunQuer
 use serde::Deserialize;
 
 use crate::{auth::session::validate_session, db::{models::{Address, CartProduct, Order, OrderWithId, Product}, schema::{addresses, cartproducts, likedproducts, orders, productorders, products}}, internal_error, logged_in, AppState, SESSION_COOKIE_NAME};
+pub mod admin;
 
 #[derive(Template)]
 #[template(path="browse.html")]
@@ -20,7 +21,7 @@ struct BrowsePageTemplate {
 struct ProductPageTemplate {
     logged_in: bool,
     product: Product,
-    is_liked: bool
+    is_liked: bool,
 }
 
 #[derive(Template)]
@@ -166,7 +167,7 @@ impl<'de> Deserialize<'de> for FormBool {
 
 pub async fn browse(jar: CookieJar, State(state): State<AppState>) -> Result<(StatusCode, Html<String>), (StatusCode, String)> {
     let mut conn = state.pool.get().await.map_err(internal_error)?;
-    let products: Vec<Product> = products::table.select(products::all_columns).limit(15).load(&mut conn).await.map_err(internal_error)?;
+    let products: Vec<Product> = products::table.select(products::all_columns).filter(products::listed.eq(true)).load(&mut conn).await.map_err(internal_error)?;
     let template = BrowsePageTemplate {products, logged_in: logged_in(&jar, &state.pool).await};
     let html = template.render().unwrap();
     Ok((StatusCode::OK, Html(html)))
@@ -179,11 +180,10 @@ pub async fn product(Path(path): Path<String>, jar: CookieJar,  State(state): St
     if let Some(session_cookie)= jar.get(SESSION_COOKIE_NAME) {
         let session = validate_session(session_cookie.value().to_owned(), &state.pool).await?;
         is_liked = likedproducts::table.select(likedproducts::all_columns).filter(likedproducts::product_id.eq(product.id)).filter(likedproducts::user_id.eq(session.user_id)).load::<(i32, i32)>(&mut conn).await.map_err(internal_error)?.len() > 0;
-        println!("{}", is_liked)
     } else {
         is_liked = false
     }
-    let template = ProductPageTemplate { product, logged_in: logged_in(&jar, &state.pool).await, is_liked};
+    let template = ProductPageTemplate {product, logged_in: logged_in(&jar, &state.pool).await, is_liked};
     let html = template.render().unwrap();
     Ok((StatusCode::OK, Html(html)))
 }
@@ -219,6 +219,10 @@ pub async fn cart_post_handler(jar: CookieJar, State(state): State<AppState>, Fo
     match payload.action {
         Action::Add => {
             if (1..=32).contains(&payload.quantity) {
+                let product: Product = products::table.select(products::all_columns).filter(products::id.eq(payload.product_id)).first(&mut conn).await.map_err(|_| (StatusCode::NOT_FOUND, String::from("404 Not Found")))?;
+                if !product.listed {
+                    return Err((StatusCode::BAD_REQUEST, String::from("This item is no longer listed")))
+                }
                 let entry = CartProduct {product_id: payload.product_id, user_id: session.user_id, quantity: payload.quantity};
                 insert_into(cartproducts::table).values(entry).execute(&mut conn).await.map_err(internal_error)?;
                 return Ok((StatusCode::OK, String::from("Added ✔")).into_response())
@@ -314,10 +318,7 @@ pub async fn view_order_details(jar: CookieJar, State(state): State<AppState>, F
     let session_cookie= jar.get(SESSION_COOKIE_NAME).ok_or((StatusCode::UNAUTHORIZED, String::from("401 unauthorized")))?;
     let session = validate_session(session_cookie.value().to_owned(), &state.pool).await?;
     let address: Address = addresses::table.select((addresses::user_id, addresses::recipient_name, addresses::line_1, addresses::line_2, addresses::postcode, addresses::county)).inner_join(orders::table).filter(orders::id.eq(payload.order_id)).filter(orders::user_id.eq(session.user_id)).first::<Address>(&mut conn).await.map_err(internal_error)?;
-    let products = productorders::table.inner_join(products::table).select((products::all_columns, productorders::quantity)).filter(productorders::order_id.eq(payload.order_id));
-    println!("{}", debug_query::<diesel::pg::Pg, _>(&products).to_string());
-    let products = products.load::<(Product, i32)>(&mut conn).await.map_err(internal_error)?;
-    println!("{:?}", products);
+    let products = productorders::table.inner_join(products::table).select((products::all_columns, productorders::quantity)).filter(productorders::order_id.eq(payload.order_id)).load::<(Product, i32)>(&mut conn).await.map_err(internal_error)?;
     let total: BigDecimal = products.iter().map(|c| &c.0.cost * &c.1).sum();
     let html = OrderDetails {order_info: OrderInfo { address, info: OrderWithId::default(), products, total}}.render().unwrap();
     Ok(Html(html))

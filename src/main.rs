@@ -3,7 +3,7 @@ use axum::{extract::State, http::StatusCode, response::{Html, IntoResponse}, rou
 use axum_extra::extract::CookieJar;
 use db::{models::Product, schema::products};
 use diesel::{define_sql_function, IntoSql, QueryDsl};
-use ecom::{browse, cart, cart_post_handler, checkout, checkout_post_handler, like_post_handler, liked, orders, product, view_order_details};
+use ecom::{admin::admin_routes, browse, cart, cart_post_handler, checkout, checkout_post_handler, like_post_handler, liked, orders, product, view_order_details};
 use tower_http::{services::{ServeDir, ServeFile}, trace::TraceLayer};
 use tracing;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -71,6 +71,7 @@ async fn create_srv() -> Router {
         pool: create_pool().await
     };
     Router::new()
+    .nest("/adminpanel", admin_routes())
     .nest_service("/files", ServeDir::new("server_files").not_found_service(ServeFile::new("server_files\\static\\404.txt")))
     .route("/", get(index))
     .route("/sign-in", get(sign_in).post(process_sign_in))
