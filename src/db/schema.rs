@@ -5,7 +5,7 @@ diesel::table! {
         id -> Integer,
         user_id -> Integer,
         #[max_length = 255]
-        recipient_name -> Varchar,        
+        recipient_name -> Varchar,
         #[max_length = 255]
         line_1 -> Varchar,
         #[max_length = 255]

@@ -1,6 +1,8 @@
+use crate::db::schema::{
+    addresses, cartproducts, orders, productorders, products, sessions, users,
+};
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
-use crate::db::schema::{addresses, cartproducts, orders, productorders, products, sessions, users};
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = users)]
@@ -9,7 +11,7 @@ pub struct User {
     pub id: i32,
     pub email: String,
     pub password: String,
-    pub is_admin: bool
+    pub is_admin: bool,
 }
 
 #[derive(Insertable)]
@@ -26,7 +28,7 @@ pub struct NewUser<'a> {
 pub struct Session {
     pub id: String,
     pub user_id: i32,
-    pub expires_at: time::OffsetDateTime
+    pub expires_at: time::OffsetDateTime,
 }
 
 #[derive(Queryable, Selectable, Insertable, Clone, Debug)]
@@ -38,7 +40,7 @@ pub struct Product {
     pub description: String,
     pub imgname: String,
     pub cost: BigDecimal,
-    pub listed: bool
+    pub listed: bool,
 }
 
 #[derive(Insertable)]
@@ -49,7 +51,7 @@ pub struct NewProduct {
     pub title: String,
     pub description: String,
     pub imgname: String,
-    pub cost: BigDecimal
+    pub cost: BigDecimal,
 }
 
 #[derive(Queryable, Selectable, Insertable)]
@@ -61,7 +63,7 @@ pub struct Address {
     pub line_1: String,
     pub line_2: String,
     pub postcode: String,
-    pub county: String
+    pub county: String,
 }
 
 #[derive(Identifiable, Selectable, Queryable, Associations, Insertable)]
@@ -73,7 +75,7 @@ pub struct Address {
 pub struct CartProduct {
     pub user_id: i32,
     pub product_id: i32,
-    pub quantity: i32
+    pub quantity: i32,
 }
 
 #[derive(Insertable)]
@@ -81,7 +83,7 @@ pub struct CartProduct {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Order {
     pub user_id: i32,
-    pub address_id: i32
+    pub address_id: i32,
 }
 
 #[derive(Queryable, Default)]
@@ -90,7 +92,7 @@ pub struct Order {
 pub struct OrderWithId {
     pub id: i32,
     pub user_id: i32,
-    pub address_id: i32
+    pub address_id: i32,
 }
 
 #[derive(Insertable, Selectable, Queryable)]
@@ -99,6 +101,5 @@ pub struct OrderWithId {
 pub struct ProductInOrder {
     pub product_id: i32,
     pub order_id: i32,
-    pub quantity: i32
+    pub quantity: i32,
 }
-

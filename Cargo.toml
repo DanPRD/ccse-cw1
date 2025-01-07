@@ -24,6 +24,7 @@ futures-macro = "0.3.31"
 time = "0.3.36"
 hex = "0.4.3"
 bigdecimal = "0.4.5"
+regex = "1.11.1"
 
 [dev-dependencies]
 tower = { version = "0.5.1", features = ["util"] }

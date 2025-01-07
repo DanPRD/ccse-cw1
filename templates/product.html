@@ -18,19 +18,19 @@
                 <div class="flex justify-evenly items-end">
                     {% if product.listed %}
                     {% if is_liked %}
-                    <form hx-post="/liked" hx-target="#fav-resp" hx-ext="response-targets" hx-target-4*="#error-resp" class="flex flex-col justify-center">
+                    <form hx-post="/liked" hx-ext="response-targets" hx-target="#fav-resp" hx-target-4*="#error-resp" class="flex flex-col justify-center">
                         <input value="{{product.id}}" name="product_id" hidden/>
                         <input value="Remove" name="action" hidden/>
                         <button class="bg-black text-white pt-1 pb-1 pl-3 pr-3 hover:bg-opacity-85 rounded" id="fav-resp">Remove From Favourites</button>
                     </form>    
                     {% else %}   
-                    <form hx-post="/liked" hx-target="#fav-resp" hx-ext="response-targets" hx-target-4*="#error-resp" class="flex flex-col justify-center">
+                    <form hx-post="/liked" hx-ext="response-targets" hx-target="#fav-resp"  hx-target-4*="#error-resp" class="flex flex-col justify-center">
                         <input value="{{product.id}}" name="product_id" hidden/>
                         <input value="Add" name="action" hidden/>
                         <button class="bg-black text-white pt-1 pb-1 pl-3 pr-3 hover:bg-opacity-85 rounded" id="fav-resp">Add To Favourites</button>
                     </form>      
                     {% endif %}         
-                    <form hx-post="/cart" hx-target="#cart-resp" hx-ext="response-targets" hx-target-4*="#error-resp" class="flex flex-col justify-end">
+                    <form hx-post="/cart" hx-ext="response-targets" hx-target="#cart-resp"  hx-target-4*="#error-resp" class="flex flex-col justify-end">
                         <input value="{{product.id}}" name="product_id" hidden/>
                         <input value="Add" name="action" hidden/>
                         <div>
