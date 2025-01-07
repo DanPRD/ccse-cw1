@@ -18,8 +18,8 @@ Tech Stack:
 ```
 DATABASE_URL=postgresql://username:password@localhost/database_name
 ```
-where username, password and database_name are to be replaced with your own
-4. execute the SQL file at `sql/up.sql`, then `sql/products.sql` to generate the correct tables and default entries
+where username, password and database_name are to be replaced with your own  
+4. execute the SQL file at `sql/up.sql`, then `sql/products.sql` to generate the correct tables and default entries  
 5. Build the project: 
 ```powershell
 cargo build --release
@@ -29,6 +29,6 @@ cargo build --release
 cargo run --release
 ```
 
-The default admin account is as follows:
-username: `admin@securecart.com`
-password: `@8*aUxB2#fEnT]E`
+The default admin account is as follows:  
+username: `admin@securecart.com`  
+password: `@8*aUxB2#fEnT]E`  
