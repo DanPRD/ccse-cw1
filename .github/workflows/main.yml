@@ -27,7 +27,7 @@ jobs:
             -e POSTGRES_USER=testuser \
             -e POSTGRES_PASSWORD=pass \
             -e POSTGRES_DB=testdb \
-            -v ./sql/actionsinit.sql:/docker-entrypoint-initdb.d/actionsinit.sql \
+            -v "$GITHUB_WORKSPACE/sql/actionsinit.sql":/docker-entrypoint-initdb.d/actionsinit.sql \
             postgres:latest
 
       - name: Setup Rust
