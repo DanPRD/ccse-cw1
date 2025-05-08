@@ -1,0 +1,43 @@
+name: main
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Start Postgres container
+        run: |
+          docker network create action_net || true
+
+          docker run -d \
+            --name testdatabase \
+            --network action_net \
+            -e POSTGRES_USER=testuser \
+            -e POSTGRES_PASSWORD=pass \
+            -e POSTGRES_DB=testdb \
+            -v ./sql/actionsinit.sql:/docker-entrypoint-initdb.d/actionsinit.sql \
+            postgres:latest
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable    
+          override: true      
+
+      - name: Run cargo tests
+        run: cargo test -- --nocapture
+        env:
+          RUST_LOG: debug
+          DATABASE_URL: postgres://testuser:pass@localhost:5432/testdb

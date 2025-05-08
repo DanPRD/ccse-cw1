@@ -11,6 +11,7 @@ Test User credentials exist in the database already, they should of been created
 
 */
 
+
 #[tokio::test]
 async fn server_runs() {
     let srv = create_srv().await;
@@ -84,10 +85,14 @@ async fn login_correct() {
 
 #[tokio::test]
 async fn logout() {
+    let creds = [
+        ("email", "testemail@securecart.com"),
+        ("password", "mysecurepassword"),
+    ];
     let srv = TestServer::new(create_srv().await).unwrap();
     let response = srv
         .post("/sign-in")
-        .form("email=testemail@securecart.com&password=mysecurepassword")
+        .form(&creds)
         .save_cookies()
         .await;
     assert_eq!(response.status_code(), StatusCode::OK);
