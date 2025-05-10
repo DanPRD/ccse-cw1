@@ -17,7 +17,7 @@ askama = "0.14.0"
 diesel = { version = "2.2.4", features = ["postgres", "time", "numeric"] }
 dotenvy = "0.15.7"
 diesel-async = { version = "0.5.2", features = ["postgres", "deadpool"] }
-argon2 = "0.5.3"
+argon2 = {version = "0.5.3", features = ["std", "rand"]}
 sha2 = "0.10.8"
 base32 = "0.5.1"
 futures-macro = "0.3.31"
