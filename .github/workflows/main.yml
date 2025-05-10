@@ -3,12 +3,23 @@ name: main
 on:
   push:
     branches: [ "main" ]
+    paths: 
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
+  dependency_audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  integration_tests:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -19,7 +30,6 @@ jobs:
           POSTGRES_DB: securecart
         ports:
           - 5432:5432
-        # optional health‐check so we can wait on it
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 10s
@@ -33,7 +43,7 @@ jobs:
 
       - name: Initialize Database Schema
         env:
-          PGPASSWORD: postgres        # for non‐interactive authentication
+          PGPASSWORD: postgres        
         run: |
           psql \
             -h localhost \
