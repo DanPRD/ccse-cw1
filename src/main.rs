@@ -118,7 +118,7 @@ async fn create_srv() -> Router {
         .route("/cart", get(cart).post(cart_post_handler))
         .route("/cart/checkout", get(checkout).post(checkout_post_handler))
         .route("/liked", get(liked).post(like_post_handler))
-        .route("/browse/:product", get(product))
+        .route("/browse/{product}", get(product))
         .route("/orders", get(orders).post(view_order_details))
         .fallback_service(ServeFile::new("server_files\\static\\404.txt"))
         .layer(TraceLayer::new_for_http())
