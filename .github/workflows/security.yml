@@ -1,4 +1,4 @@
-name: main
+name: security
 
 on:
   push:
@@ -8,10 +8,23 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  snyk_audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@master
+      - name: Authenticate Snyk
+        run: snyk auth ${{ secrets.SNYK_TOKEN }}
+      - name: Run Snyk Code SAST
+        run: snyk code test --org=ccsecw2
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
   dependency_audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
       - uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -32,7 +45,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
 
     steps:
       - name: Checkout Code

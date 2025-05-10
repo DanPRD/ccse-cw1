@@ -6,17 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = {version = "0.7.7", features = ["http2", "multipart"] }
-axum-extra = {version = "0.9.4", features = ["cookie", "form"] }
+axum = {version = "0.8.4", features = ["http2", "multipart"] }
+axum-extra = {version = "0.10.1", features = ["cookie", "form"] }
 tokio = {version = "1.41.0", features = ["full"] }
 serde = { version = "1.0.211", features = ["derive"] }
 tower-http = { version = "0.6.1", features = ["trace", "fs", "set-header"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-askama = "0.12.1"
+askama = "0.14.0"
 diesel = { version = "2.2.4", features = ["postgres", "time", "numeric"] }
 dotenvy = "0.15.7"
-diesel-async = { version = "0.5.0", features = ["postgres", "deadpool"] }
+diesel-async = { version = "0.5.2", features = ["postgres", "deadpool"] }
 argon2 = "0.5.3"
 sha2 = "0.10.8"
 base32 = "0.5.1"
@@ -28,4 +28,4 @@ regex = "1.11.1"
 
 [dev-dependencies]
 tower = { version = "0.5.1", features = ["util"] }
-axum-test = "16.3.0"
+axum-test = "17.3.0"
