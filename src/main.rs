@@ -2,7 +2,7 @@
 use askama::Template;
 use axum::{
     extract::State,
-    http::StatusCode,
+    http::{HeaderName, HeaderValue, StatusCode},
     response::{Html, IntoResponse},
     routing::{get, post},
     Router,
@@ -21,8 +21,7 @@ use ecom::{
 };
 use std::env;
 use tower_http::{
-    services::{ServeDir, ServeFile},
-    trace::TraceLayer,
+    services::{ServeDir, ServeFile}, set_header::SetResponseHeaderLayer, trace::TraceLayer
 };
 use tracing;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -121,6 +120,15 @@ async fn create_srv() -> Router {
         .route("/browse/{product}", get(product))
         .route("/orders", get(orders).post(view_order_details))
         .fallback_service(ServeFile::new("server_files\\static\\404.txt"))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("content-security-policy"),
+            HeaderValue::from_static("default-src 'self'; script-src 'self' unpkg.com; frame-ancestors 'none';")))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-frame-options"),
+            HeaderValue::from_static("DENY")))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-content-type-options"),
+            HeaderValue::from_static("nosniff")))
         .layer(TraceLayer::new_for_http())
         .with_state(app_state)
 }
