@@ -71,7 +71,7 @@ async fn main() {
 
     let root_app = create_srv().await;
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:1111")
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:1111")
         .await
         .unwrap();
     tracing::debug!("listening on {}", listener.local_addr().unwrap());
